@@ -1,0 +1,28 @@
+type alpha_t { 
+    int* a; 
+};
+
+import string;
+
+alias gamma_t = alpha_t;
+
+type beta_t {
+    short a;
+    alpha_t b;
+};
+
+alpha_t function(beta_t* argument) {
+    if (argument.a == 0) {
+        int* integer = new int(777);
+
+        alpha_t value = alpha_t(integer);
+
+        while (*value.a != 0) {
+            value.a--;
+        }
+
+        return value;
+    } else {
+        return alpha_t(new int(666));
+    }
+}

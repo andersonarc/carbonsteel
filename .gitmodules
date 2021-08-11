@@ -1,0 +1,3 @@
+[submodule "subprojects/ctool"]
+	path = subprojects/ctool
+	url = https://github.com/andersonarc/ctool.git

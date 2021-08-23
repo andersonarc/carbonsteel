@@ -55,6 +55,7 @@ void consume_multi_line_comment();
 "if"					{ return(IF); }
 "import"                { return(IMPORT); }
 "inline"				{ return(INLINE); }
+"new"                   { return(NEW); }
 "return"				{ return(RETURN); }
 "signed"				{ return(SIGNED); }
 "true"                  { return(TRUE); }

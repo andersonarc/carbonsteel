@@ -162,6 +162,15 @@ stack_push(node_new)
  */
 #define stack_pop_get(kind_upper, kind) stack_find_pop(STACK_##kind_upper).u_##kind
 
+/**
+ * Alias for stack_find_remove which
+ * returns node value
+ * 
+ * @param[in] kind_upper Kind of the node, upper-case and without prefix
+ * @param[in] kind       Kind of the node, lower-case and without prefix
+ */
+#define stack_find_remove_value(kind_upper, kind) stack_find_remove(STACK_##kind_upper).u_##kind
+
     /* typedefs */
 typedef enum stack_node_kind {
     STACK_NAME, STACK_TYPE, 
@@ -176,7 +185,7 @@ typedef enum stack_node_kind {
     STACK_EX_CONDITION, STACK_ST_VARIABLE, STACK_ST_EXPRESSION,
     STACK_ST_WHILE, STACK_ST_JUMP, STACK_ST_IF,
     STACK_STATEMENT, STACK_ST_COMPOUND, STACK_BOOLEAN, STACK_IMPORT,
-    STACK_FUNCTION_PARAMETER_REFERENCE
+    STACK_FUNCTION_PARAMETER_REFERENCE, STACK_EX_CONSTRUCTOR
 } stack_node_kind;
 
 typedef struct stack_node {
@@ -218,6 +227,7 @@ typedef struct stack_node {
         ex_boolean u_boolean;
         ast_import u_import;
         ast_function_parameter u_function_parameter;
+        ex_constructor u_ex_constructor;
     };
 } stack_node;
 arraylist_declare(stack_node);
@@ -257,6 +267,16 @@ void stack_pop();
  * @return The node
  */
 stack_node stack_get(index_t index, stack_node_kind kind);
+
+/**
+ * Finds the last stack node of specified kind 
+ * and removes it, or throws an internal error
+ * 
+ * @param[in] kind Kind of the node
+ * 
+ * @return The found node
+ */
+stack_node stack_find_remove(stack_node_kind kind);
 
 /**
  * Checks the kind of the last stack node,

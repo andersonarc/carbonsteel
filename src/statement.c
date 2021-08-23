@@ -138,7 +138,8 @@ void add_st_while() {
 
 void add_statement(statement_kind kind) {
     /* create new node */
-    stack_node node; //todo node constructor
+    stack_node node; 
+    //todo node constructor
     node.kind = STACK_STATEMENT;
     node.u_statement.kind = kind;
 

@@ -104,12 +104,7 @@ void biex_end(name)();                  \
 /**                                     \
  * Binary expression code generation    \
  */                                     \
-cg_ex(name);                            \
-                                        \
-/**                                     \
- * Binary expression constructor check  \
- */                                     \
-arraylist(ex_cast_ptr) biex_check_constructor(name)(biex(name)* ex);
+cg_ex(name);
 
     /* global variables */
 /**
@@ -122,16 +117,16 @@ extern const char* op_assign_strings[];
  */
 extern const char* op_unary_strings[];
 
+/**
+ * Expression stack for constructors
+ */
+extern arraylist(ex_constructor_ptr) expression_stack;
+
     /* declarations */
 /**
  * Cast expression code generation
  */
 cg_ex(cast);
-
-/**
- * Cast expression constructor check
- */
-arraylist(ex_cast_ptr) check_constructor_ex_cast(ex_cast* ex);
 
 /**
  * Binary expression node kind
@@ -161,13 +156,15 @@ struct ex_number {
 };
 
 
-    /** TYPE **/
+    /** CONSTRUCTOR **/
 
-struct ex_type {
-    ast_type* value;
-    union {
-        list(expression) u_arguments;
-    };
+struct ex_constructor {
+    bool is_new;
+    bool is_array;
+    char* u_variable_name;
+    expression* u_array_size;
+    ast_type* type;
+    list(expression) arguments;
 };
 
 
@@ -177,7 +174,7 @@ enum ex_basic_kind {
     EX_B_VARIABLE, EX_B_FUNCTION,
     EX_B_NUMBER, EX_B_EXPRESSION,
     EX_B_BOOLEAN, EX_B_STRING,
-    EX_B_TYPE, EX_B_FUNCTION_PARAMETER
+    EX_B_CONSTRUCTOR, EX_B_FUNCTION_PARAMETER
 };
     
 struct ex_basic {
@@ -189,7 +186,7 @@ struct ex_basic {
         expression* u_expression;
         ex_boolean u_boolean;
         char* u_string;
-        ast_type* u_type;
+        ex_constructor* u_constructor;
         ast_function_parameter* u_function_parameter;
     };
 };
@@ -232,7 +229,7 @@ enum op_unary {
 
 enum ex_unary_kind {
     EX_U_PLAIN, EX_U_INCREMENT, EX_U_DECREMENT,
-    EX_U_PLUS, EX_U_MINUS
+    EX_U_PLUS, EX_U_MINUS, EX_U_NEW
 };
 
 struct ex_unary {
@@ -301,6 +298,7 @@ enum op_assign {
 
 struct expression {
     bool has_assignment;
+    arraylist(ex_constructor_ptr) constructors;
     union {
         ex_condition u_plain;
         struct {
@@ -318,6 +316,23 @@ struct expression {
  * @push EX_BASIC
  */
 void add_ex_basic(ex_basic_kind kind);
+
+/**
+ * @walk from TYPE || TYPE + 1 if is_array
+ *  @get EXPRESSION
+ * @if is_array
+ *  @pop EXPRESSION
+ * @pop TYPE
+ * @init ex_constructor (.is_new = false, .is_array, .arguments, .u_array_size, .type)
+ * @push EX_CONSTRUCTOR
+ */
+void add_ex_constructor(bool is_array);
+
+/**
+ * @peek EX_CONSTRUCTOR
+ * @init ex_constructor (.is_new = true)
+ */
+void add_ex_constructor_new();
 
 /**
  * @pop EX_BASIC
@@ -414,8 +429,14 @@ void add_ex_condition(bool has_condition);
  *  @init (.b, .op, .a) full
  * @else
  *  @pop EX_CONDITION
- * @push EXPRESSION
+ *  @init (.a) full
  */
 void add_expression(bool has_assignment);
+
+/**
+ * @peek EXPRESSION
+ * @init expression (.constructors)
+ */
+void add_expression_block();
 
 #endif /* CARBONSTEEL_EXPRESSION_H */

@@ -1,0 +1,25 @@
+type alpha_t { 
+    int* a; 
+};
+
+import string;
+
+alias gamma_t = alpha_t;
+
+type beta_t {
+    short a;
+    alpha_t b;
+};
+
+alpha_t function(beta_t* arg) {
+    int** ptr = new int*(new int(99));
+
+    int number = 7;
+    beta_t var = beta_t((*arg).a, alpha_t(&number));
+    if (var.a == 7) {
+        while (var.a > 0) {
+            var.a--;
+        }
+    }
+    return beta_t((*arg).a, (*arg).b).b;
+}

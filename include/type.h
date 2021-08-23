@@ -54,8 +54,12 @@ struct ast_alias {
 
     /** TYPE **/
 
-enum ast_type_level {
-    AST_TL_POINTER
+enum ast_type_level_kind {
+    AST_TL_POINTER, AST_TL_ARRAY
+};
+
+struct ast_type_level {
+    ast_type_level_kind kind;
 };
 
 struct ast_type {
@@ -128,10 +132,12 @@ void start_structure();
 void end_structure();
 
 /**
- * @peek TYPE
+ * @find TYPE
+ * @if kind == AST_TL___ARRAY_INITIALIZER
+ *  @pop EXPRESSION
  * @init ast_type (.level_list)
  */
-void add_type_level();
+void add_type_level(ast_type_level_kind kind);
 
 /**
  * @pop NAME

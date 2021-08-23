@@ -33,7 +33,7 @@ void yyerror(const char* message);
 %token	XOR_ASSIGN OR_ASSIGN
 %token  TRUE FALSE
 
-%token	INLINE CONST SIGNED UNSIGNED
+%token	INLINE CONST SIGNED UNSIGNED NEW
 %token	IMPORT TYPE STRUCTURE_NAME ALIAS_NAME ST_VARIABLE_NAME PRIMITIVE_NAME
 %token  ENUM ENUM_NAME FUNCTION FUNCTION_NAME FUNCTION_PARAMETER_NAME ELLIPSIS ALIAS
 
@@ -49,6 +49,7 @@ basic_expression
 	| boolean { add_ex_basic(EX_B_BOOLEAN); }
 	| number { add_ex_basic(EX_B_NUMBER); }
 	| string { add_ex_basic(EX_B_STRING); }
+	| constructor_expression { add_ex_basic(EX_B_CONSTRUCTOR); }
 	| '(' expression ')' { add_ex_basic(EX_B_EXPRESSION); }
 	;
 
@@ -67,13 +68,18 @@ string
 	: STRING_LITERAL { stack_push_string(yytext); }
 	;
 
-type_expression
-	: type function_invocation
+constructor_basic
+	: type function_invocation { add_ex_constructor(false); }
+	| type '[' expression ']' function_invocation { add_ex_constructor(true); }
+	;
+
+constructor_expression
+	: constructor_basic
+	| NEW constructor_basic { add_ex_constructor_new(); }
 	;
 
 postfix_expression_recursive
 	: basic_expression { start_ex_postfix(); }
-	| type_expression { start_ex_type_postfix(); }
 	| postfix_expression_recursive '[' expression ']' { add_ex_postfix_level(EX_PL_INDEX); }
 	| postfix_expression_recursive function_invocation { add_ex_postfix_level(EX_PL_INVOCATION); }
 	| postfix_expression_recursive '.' IDENTIFIER /* structure or enum property, checked */ { add_ex_postfix_level(EX_PL_PROPERTY); }
@@ -187,6 +193,10 @@ expression
 	| unary_expression assignment_operator expression { add_expression(true); }
 	;
 
+expression_block
+	: expression { add_expression_block(); }
+	;
+
 assignment_operator
 	: '=' { add_op_assign(OP_AS_PLAIN); }
 	| MUL_ASSIGN { add_op_assign(OP_AS_MUL); }
@@ -206,7 +216,7 @@ property_declaration
 	;
 
 property_statement
-	: property_declaration '=' expression ';' { add_st_variable(); }
+	: property_declaration '=' expression_block ';' { add_st_variable(); }
 	;
 
 import_declaration
@@ -220,7 +230,8 @@ import_level_list
 
 type
     : type_plain
-    | type '*' { add_type_level(); }
+    | type '*' { add_type_level(AST_TL_POINTER); }
+	| type '[' ']' { add_type_level(AST_TL_ARRAY); }
 	;
 
 type_plain
@@ -292,11 +303,11 @@ block_item
 expression_statement: expression_statement_ { add_st_expression(); };
 expression_statement_
 	: ';'
-	| expression ';'
+	| expression_block ';'
 	;
 
 condition_if_statement
-	: IF '(' expression ')' statement { add_st_if(); }
+	: IF '(' expression_block ')' statement { add_st_if(); }
 	;
 
 condition_statement
@@ -305,14 +316,14 @@ condition_statement
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement { add_st_while(); }
+	: WHILE '(' expression_block ')' statement { add_st_while(); }
 	;
 
 jump_statement
 	: CONTINUE ';' { add_st_jump(ST_J_CONTINUE); }
 	| BREAK ';' { add_st_jump(ST_J_BREAK); }
 	| RETURN ';' { add_st_jump(ST_J_RETURN_VOID); }
-	| RETURN expression ';' { add_st_jump(ST_J_RETURN); }
+	| RETURN expression_block ';' { add_st_jump(ST_J_RETURN); }
 	;
 
 translation_unit

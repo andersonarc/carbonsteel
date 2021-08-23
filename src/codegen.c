@@ -29,167 +29,138 @@ cg_ex(condition);
 
     /* internal functions */
 /**
- * Predeclaration
- */
-arraylist(ex_cast_ptr) check_constructor_ex_condition(ex_condition* ex);
-
-/**
- * Checks if an expression contains constructor
- * invocations, and if it does, returns them
+ * Generates a new temporary variable name
  * 
- * @param[in] ex Pointer to the expression
+ * @param[in] tmp Pointer to the temporary variable index
  * 
- * @return Constructor expression arraylist
+ * @return The new name, heap-allocated
  */
-arraylist(ex_cast_ptr) check_constructor(expression* ex) {
-    if (ex->has_assignment) {
-        return check_constructor(ex->u_assignment.b);
-    } else {
-        return check_constructor_ex_condition(&ex->u_plain);
-    }
+char* get_tmp_name_from(int* tmp) {
+    int name_size = snprintf(NULL, 0, "_cst_tmpvar_%d_", *tmp) + 1;
+    char* name = malloc(name_size);
+    snprintf(name, name_size, "_cst_tmpvar_%d_", *tmp);
+    (*tmp)++;
+    return name;
 }
+#define get_tmp_name() get_tmp_name_from(tmp)
 
-/**
- * Conditional expression constructor check
- */
-arraylist(ex_cast_ptr) check_constructor_ex_condition(ex_condition* ex) {
-    arraylist(ex_cast_ptr) base = check_constructor_ex_or(&ex->a);
-    if (ex->has_condition) {
-        arraylist(ex_cast_ptr) new_if = check_constructor(&ex->u_if);
-        iterate_array(i, new_if.size) {
-            assert_arraylist_add(ex_cast_ptr, base, new_if.data[i]);
-        }
+        /* code generation functions */
 
-        arraylist(ex_cast_ptr) new_else = check_constructor_ex_condition(&ex->u_else);
-        iterate_array(i, new_else.size) {
-            assert_arraylist_add(ex_cast_ptr, base, new_else.data[i]);
-        }
+    /** CONSTRUCTOR EXPRESSION **/
+
+cg_ex(constructor) {
+    out(tabs)();
+    ex->u_variable_name = get_tmp_name();
+    
+    cg(type)(ex->type);
+    if (ex->is_new) {
+        out(char)('*');
     }
-    return base;
-}
+    out(char)(' ');
+    out(string)(ex->u_variable_name);
 
-/**
- * Cast expression constructor check
- */
-arraylist(ex_cast_ptr) check_constructor_ex_cast(ex_cast* ex) {
-    ex_postfix postfix = ex->value.value;
-    if (postfix.value.kind == EX_B_TYPE && postfix.level_list.size != 0 && postfix.level_list.data[0].kind == EX_PL_INVOCATION) {
-        arraylist(ex_cast_ptr) base;
-        assert_arraylist_init(ex_cast_ptr, base);
-        assert_arraylist_add(ex_cast_ptr, base, ex);
+    if (ex->is_array) {
+        if (ex->is_new) {
+            out(string)(" = malloc(sizeof(");
+            cg(type)(ex->type);
+            out(string)(") * ");
+            cg(expression)(ex->u_array_size);
+            out(string)(");\n");
 
-        iterate_array(i, postfix.level_list.size) {
-            ex_postfix_level level = postfix.level_list.data[i];
-            arraylist(ex_cast_ptr) new;
+            //todo generate size checker
 
-            switch (level.kind) {
-                case EX_PL_INDEX:
-                    new = check_constructor(level.u_index);
-                    iterate_array(j, new.size) { //todo arraylist_add_all
-                        assert_arraylist_add(ex_cast_ptr, base, new.data[j]);
-                    }
-                    break;
-
-                case EX_PL_INVOCATION:
-                    iterate_array(j, level.u_arguments.size) {
-                        new = check_constructor(&level.u_arguments.data[j]);
-                        iterate_array(k, new.size) {
-                            assert_arraylist_add(ex_cast_ptr, base, new.data[k]);
-                        }
-                    }
-                    break;
-
-                case EX_PL_PROPERTY:
-                    break;
-
-                otherwise_error
-            }
-        }
-        return base;
-    } else {
-        arraylist(ex_cast_ptr) result = { .data = NULL, .size = 0, ._allocated_size = 0 };
-        return result;
-    }
-}
-
-/**
- * Stack-allocated constructor generation function
- */
-void codegen_stack_constructor(ast_type type, list(expression) arguments, char* tmp_name, FILE* file, int tabs, int* tmp) {
-    //todo NEW initialzer
-    switch (type.kind) {
-        case AST_TK_STRUCTURE:
-            if (type.u_structure->member_list.size != arguments.size) {
-                error_syntax("invalid argument count for a constructor");
-            }
-            iterate_array(j, type.u_structure->member_list.size) {
-                out(tabs)();
-                out(format)("%s.%s = ", tmp_name, type.u_structure->member_list.data[j].name);
-                cg(expression)(&arguments.data[j]);
+            iterate_array(i, ex->arguments.size) {
+                out(format)("%s[%zu] = ", ex->u_variable_name, i);
+                cg(expression)(&ex->arguments.data[i]);
                 out(string)(";\n");
             }
-            break;
-
-        case AST_TK_ALIAS:
-            codegen_stack_constructor(*type.u_alias->target, arguments, tmp_name, file, tabs, tmp);
-            break;
-
-        case AST_TK_PRIMITIVE:
-            out(format)("%s = ", tmp_name);
-            if (arguments.size != 1) {
-                error_syntax("invalid argument count for a constructor");
-            }
-            cg(expression)(&arguments.data[0]);
-            break;
-
-        case AST_TK_ENUM:
-            error_syntax("cannot construct an enum");
-            break;
-
-        otherwise_error
-    }
-}
-
-
-/**
- * Constructor generation function
- */
-_codegen_declare(constructor, expression* ex) {
-    arraylist(ex_cast_ptr) list = check_constructor(ex);
-    for (int i = list.size - 1; i >= 0; i--) {
-        ex_cast* value = list.data[i];
-        ex_postfix* postfix = &value->value.value;
-        ex_basic* basic = &postfix->value;
-        list(expression) arguments = postfix->level_list.data[0].u_arguments;
-        
-        ast_type type;
-        if (!arraylist_is_empty(value->cast_list)) {
-            type = arraylist_last(value->cast_list);
         } else {
-            type = *basic->u_type;
+            out(char)('[');
+            cg(expression)(ex->u_array_size); 
+            
+            //todo constexpr size checking
+
+            out(string)("] = { ");
+
+            iterate_array(i, ex->arguments.size) {
+                cg(expression)(&ex->arguments.data[i]);
+                if (i != ex->arguments.size - 1) {
+                    out(char)(',');
+                }
+                out(char)(' ');
+            }
+
+            out(string)("};\n");
         }
+    } else {
+        start:
+        switch (ex->type->kind) {
+            case AST_TK_STRUCTURE:
+                if (ex->type->u_structure->member_list.size != ex->arguments.size) {
+                    error_syntax("invalid argument count for a constructor");
+                }
 
-        int name_size = snprintf(NULL, 0, "_cst_tmpvar_%d_", *tmp) + 1;
-        char* name = malloc(name_size);
-        snprintf(name, name_size, "_cst_tmpvar_%d_", *tmp);
-        (*tmp)++;
+                if (ex->is_new) {
+                    out(string)(" = malloc(sizeof(");
+                    cg(type)(ex->type);
+                    out(string)("));");
 
-        basic->kind = EX_B_VARIABLE;
-        basic->u_variable = malloc(sizeof(st_variable));
-        basic->u_variable->name = name;
-        basic->u_variable->type = type;
-        assert_arraylist_remove(ex_postfix_level, postfix->level_list, 0);
+                    iterate_array(i, ex->type->u_structure->member_list.size) {
+                        out(tabs)();
+                        out(format)("%s->%s = ", ex->u_variable_name, ex->type->u_structure->member_list.data[i].name);
+                        cg(expression)(&ex->arguments.data[i]);
+                        out(string)(";\n");
+                    }
+                } else {
+                    out(string)(" = { ");
+                    iterate_array(i, ex->arguments.size) {
+                        cg(expression)(&ex->arguments.data[i]);
+                        if (i != ex->arguments.size - 1) {
+                            out(char)(',');
+                        }
+                        out(char)(' ');
+                    }
 
-        out(tabs)();
-        cg(type)(&type);
-        out(char)(' ');
-        out(string)(name);
-        out(string)(";\n");
+                    out(string)("};\n");
+                }
+                
+                break;
 
-        codegen_stack_constructor(type, arguments, name, file, tabs, tmp);
+            case AST_TK_ALIAS:
+                ex->type = ex->type->u_alias->target;
+                goto start;
+                break;
+
+            case AST_TK_PRIMITIVE:
+                if (ex->arguments.size != 1) {
+                    error_syntax("invalid argument count for a constructor");
+                }
+
+                if (ex->is_new) {
+                    out(string)(" = malloc(sizeof(");
+                    cg(type)(ex->type);
+                    out(string)("));\n");
+
+                    out(tabs)();
+                    out(format)("*%s = ", ex->u_variable_name);
+                } else {
+                    out(string)(" = ");
+                }
+
+                cg(expression)(&ex->arguments.data[0]);
+                out(string)(";\n");
+                
+                break;
+
+            case AST_TK_ENUM:
+                error_syntax("cannot construct an enum");
+                break;
+
+            otherwise_error
+        }
     }
 }
-        /* code generation functions */
+
 
     /** STRUCTURE **/
 
@@ -238,7 +209,23 @@ cg_ast(type) {
         otherwise_error
     }
     iterate_array(i, type->level_list.size) {
-        out(char)('*');
+        switch (type->level_list.data[i].kind) {
+            case AST_TL_POINTER:
+            case AST_TL_ARRAY:
+                out(char)('*');
+                break;
+
+            otherwise_error
+        }
+    }
+}
+
+
+    /** EXPRESSION CONSTRUCTORS **/
+
+_codegen_declare(expression_constructors, expression* ex) {
+    iterate_array(i, ex->constructors.size) {
+        cg(ex_constructor)(ex->constructors.data[i]);
     }
 }
 
@@ -271,6 +258,10 @@ cg_ex(basic) {
 
         case EX_B_FUNCTION_PARAMETER:
             out(string)(ex->u_function_parameter->name);
+            break;
+
+        case EX_B_CONSTRUCTOR:
+            out(string)(ex->u_constructor->u_variable_name);
             break;
 
         otherwise_error
@@ -397,7 +388,7 @@ cg_expression() {
     /** IF STATEMENT **/
 
 cg_st(if) {
-    cg(constructor)(st->condition);
+    cg(expression_constructors)(st->condition);
 
     out(tabs)();
     out(string)("if (");
@@ -417,7 +408,7 @@ cg_st(if) {
     /** WHILE STATEMENT **/
 
 cg_st(while) {
-    cg(constructor)(st->condition);
+    cg(expression_constructors)(st->condition);
 
     out(tabs)();
     out(string)("while (");
@@ -443,7 +434,7 @@ cg_st(jump) {
             break;
 
         case ST_J_RETURN:
-            cg(constructor)(st->u_return_value);
+            cg(expression_constructors)(st->u_return_value);
 
             out(tabs)();
             out(string)("return ");
@@ -464,7 +455,7 @@ cg_st(jump) {
     /** VARIABLE STATEMENT **/
 
 cg_st(variable) {
-    cg(constructor)(st->value);
+    cg(expression_constructors)(st->value);
 
     out(tabs)();
     cg(type)(&st->type);
@@ -476,6 +467,8 @@ cg_st(variable) {
 
 
     /** STATEMENT **/
+
+//todo store declarations in AST and preserve order
 
 cg_statement() {
     switch (st->kind) {
@@ -497,7 +490,7 @@ cg_statement() {
 
         case ST_EXPRESSION:
             out(tabs)();
-            cg(constructor)(st->u_st_expression);
+            cg(expression_constructors)(st->u_st_expression);
             cg(expression)(st->u_st_expression);
             out(string)(";\n");
             break;
@@ -582,6 +575,7 @@ cgtask_declare(prefix) {
     out(string)("/* This file was generated by the CARBONSTEEL compiler */\n");
     out(string)("#include <stdint.h>\n");
     out(string)("#include <stdbool.h>\n");
+    out(string)("#include <stdio.h>\n");
     out(string)("/* Prefix end */\n\n");
 }
 
@@ -635,11 +629,8 @@ cgtask_declare(aliases) {
  * @param file The file
  */
 void codegen(FILE* file) {
-    //todo predeclarations for Structures, Functions and Variables
-
     cgtask(prefix);
     cgtask(imports);
-    //aliases should be here
     cgtask(structures);
     cgtask(aliases);
     cgtask(variables);

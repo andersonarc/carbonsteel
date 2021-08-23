@@ -48,9 +48,9 @@
  */
 #define out(x) _codegen_out_##x
 #define _codegen_out_tabs() iterate_array(t, tabs) { out(char)('\t'); }
-#define _codegen_out_char(character) fputc(character, file)
-#define _codegen_out_string(string) fputs(string, file)
-#define _codegen_out_format(string, ...) fprintf(file, string, __VA_ARGS__)
+#define _codegen_out_char(character) fputc(character, file); fflush(file)
+#define _codegen_out_string(string) fputs(string, file); fflush(file)
+#define _codegen_out_format(string, ...) fprintf(file, string, __VA_ARGS__); fflush(file)
 
     /* functions */
 /**

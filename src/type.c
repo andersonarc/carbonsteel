@@ -85,12 +85,16 @@ void end_structure() {
 
     /** TYPE LEVEL ADD **/
 
-void add_type_level() {
-    /* check whether the last stack node is a type */
-    stack_check_kind(stack_top, STACK_TYPE);
+void add_type_level(ast_type_level_kind kind) {
+    /* find the type node */
+    ast_type* type = &stack_find(STACK_TYPE)->u_type;
+
+    /* initialize the level */
+    ast_type_level level;
+    level.kind = kind;
 
     /* add new level */
-    assert_arraylist_add(ast_type_level, stack_top.u_type.level_list, AST_TL_POINTER);
+    assert_arraylist_add(ast_type_level, type->level_list, level);
 }
 
 

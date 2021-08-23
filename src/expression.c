@@ -14,15 +14,26 @@
 #include "copy.h" /* duplication */
 
     /* global variables */
+/**
+ * Assignment operator string values
+ */
 const char* op_assign_strings[] = {
     "=", "*=", "/=", "%=",
     "+=", "-=", "<<=", ">>=",
     "&=", "|=", "^="
 };
 
+/**
+ * Unary operator string values
+ */
 const char* op_unary_strings[] = {
     "&", "*", "~", "!"
 };
+
+/**
+ * Expression stack for constructors
+ */
+arraylist(ex_constructor_ptr) expression_stack;
 
     /* defines */
 /**
@@ -127,29 +138,11 @@ cg_ex(name) {                                                   \
             }                                                           \
         }                                                               \
     }                                                                   \
-}                                                                       \
-                                                                        \
-/**                                                                     \
- * Binary expression constructor check                                  \
- */                                                                     \
-arraylist(ex_cast_ptr) biex_check_constructor(name)(biex(name)* ex) {       \
-    arraylist(ex_cast_ptr) base = biex_check_constructor(op)(&ex->value);   \
-    if (ex->has_operation) {                                            \
-        iterate_array(i, ex->u_operation.size) {                        \
-            if (ex->u_operation.data[i].kind == BNK_OPERAND) {          \
-                arraylist(ex_cast_ptr) new = biex_check_constructor(op)(&ex->u_operation.data[i].u_operand); \
-                iterate_array(j, new.size) {                            \
-                    assert_arraylist_add(ex_cast_ptr, base, new.data[j])    \
-                }                                                       \
-            }                                                           \
-        }                                                               \
-    }                                                                   \
-    return base;                                                        \
 }
 
     /* generic implementations*/
 arraylist_define(ex_postfix_level);
-arraylist_define(ex_cast_ptr);
+arraylist_define(ex_constructor_ptr);
 arraylist_define(op_unary);
 list_define(expression);
 
@@ -159,6 +152,55 @@ list_define(expression);
  */
 
         /* stack functions */
+
+    /** CONSTRUCTOR ADD **/
+
+void add_ex_constructor(bool is_array) {
+    /* create a new expression */
+    ex_constructor value;
+    value.is_array = is_array;
+    value.is_new = false;
+    
+    /* initialize arguments */
+    int index = stack_find_index(STACK_TYPE);
+    if (is_array) {
+        index++;
+    }
+
+    index_t i = 0;
+    assert_list_init(expression, value.arguments, stack.size - index - 1);
+    stack_walk {
+        value.arguments.data[i] = stack_get_current(STACK_EXPRESSION).u_expression;
+    }
+    stack_walk_end(expression, value.arguments);
+
+    /* initialize other fields */
+    if (is_array) {
+        expression ex = stack_pop_get(EXPRESSION, expression);
+        value.u_array_size = copy_structure(ex);
+    }
+    ast_type type = stack_pop_get(TYPE, type);
+    value.type = copy_structure(type);
+
+    /* push the node */
+    stack_push_new(EX_CONSTRUCTOR, ex_constructor);
+    assert_arraylist_add(ex_constructor_ptr, expression_stack, copy_structure(value));
+}
+
+
+    /** CONSTRUCTOR ADD NEW **/
+
+void add_ex_constructor_new() {
+    /* peek the node */
+    stack_check_kind(stack_top, STACK_EX_CONSTRUCTOR);
+
+    /* change the value */
+    stack_top.u_ex_constructor.is_new = true;
+
+    /* peek the expression stack node and change its value */
+    assert_arraylist_not_empty(expression_stack);
+    arraylist_last(expression_stack)->is_new = true;
+}
 
     /** BASIC ADD **/
 
@@ -208,9 +250,15 @@ void add_ex_basic(ex_basic_kind kind) {
             break;
 
         case EX_B_FUNCTION_PARAMETER:
-            function_parameter = stack_pop_get(FUNCTION_PARAMETER_REFERENCE, function_parameter);
+            function_parameter = stack_find_pop(STACK_FUNCTION_PARAMETER_REFERENCE).u_function_parameter;
             value.u_function_parameter = copy_structure(function_parameter);
             logd("ex_basic function parameter");
+            break;
+
+        case EX_B_CONSTRUCTOR:
+            stack_pop();
+            value.u_constructor = arraylist_last(expression_stack);
+            logd("ex_basic constructor");
             break;
 
         otherwise_error
@@ -234,37 +282,6 @@ void start_ex_postfix() {
     /* init lists and push new node */
     assert_arraylist_init(ex_postfix_level, node.u_ex_postfix.level_list);
     stack_push(node);
-}
-
-
-    /** TYPE POSTFIX START **/
-
-void start_ex_type_postfix() {
-    /* create a new postfix expression */
-    ex_postfix value;
-    assert_arraylist_init(ex_postfix_level, value.level_list);
-
-    /* create a new postfix level */
-    ex_postfix_level level;
-    level.kind = EX_PL_INVOCATION;
-
-    /* initialize the invocation level with stack walk */
-    index_t i = 0;
-    int index = stack_find_index(STACK_TYPE);
-    assert_list_init(expression, level.u_arguments, stack.size - index - 1);
-    stack_walk {
-        level.u_arguments.data[i] = stack_get_current(STACK_EXPRESSION).u_expression;
-    }
-    stack_walk_end(expression, level.u_arguments);
-
-    /* initialize the basic expression */
-    ast_type type = stack_find_pop(STACK_TYPE).u_type;
-    value.value.u_type = copy_structure(type);
-    value.value.kind = EX_B_TYPE;
-    
-    /* add the level and push a new node */
-    assert_arraylist_add(ex_postfix_level, value.level_list, level);
-    stack_push_new(EX_POSTFIX, ex_postfix);
 }
 
 
@@ -399,7 +416,7 @@ void start_ex_cast() {
     node.u_ex_cast.value = stack_find_pop(STACK_EX_UNARY).u_ex_unary;
 
     /* init lists and push new node */
-    assert_arraylist_init(ast_type, node.u_ex_cast.cast_list);
+    assert_arraylist_init_empty(ast_type, node.u_ex_cast.cast_list);
     stack_push(node);
 }
 
@@ -423,7 +440,9 @@ void end_ex_cast() {
     stack_check_kind(stack_top, STACK_EX_CAST);
 
     /* trim lists */
-    assert_arraylist_trim(ast_type, stack_top.u_ex_cast.cast_list);
+    if (stack_top.u_ex_cast.cast_list.size > 0) {
+        assert_arraylist_trim(ast_type, stack_top.u_ex_cast.cast_list);
+    }
 }
 
     /** MULTIPLICATION **/
@@ -493,9 +512,11 @@ void add_ex_condition(bool has_condition) {
     /** ADD EXPRESSION **/
 
 void add_expression(bool has_assignment) {
+    /* create a new expression */
     expression value;
-    value.has_assignment = has_assignment;
 
+    /* initialize it */
+    value.has_assignment = has_assignment;
     if (has_assignment) {
         logd("assignment expression");
         expression b = stack_find_pop(STACK_EXPRESSION).u_expression;
@@ -505,9 +526,23 @@ void add_expression(bool has_assignment) {
     } else {
         value.u_plain = stack_find_pop(STACK_EX_CONDITION).u_ex_condition;
     }
+    assert_arraylist_init_empty(ex_constructor_ptr, value.constructors)
 
-    stack_node node;
-    node.kind = STACK_EXPRESSION;
-    node.u_expression = value;
-    stack_push(node);
+    /* push the new node */
+    stack_push_new(EXPRESSION, expression);
+}
+
+
+    /** EXPRESSION BLOCK ADD **/
+
+void add_expression_block() {
+    /* peek the expression node */
+    stack_check_kind(stack_top, STACK_EXPRESSION);
+
+    /* flush the expression stack */
+    if (!arraylist_is_empty(expression_stack)) {
+        stack_top.u_expression.constructors = expression_stack;
+        assert_arraylist_init(ex_constructor_ptr, expression_stack);
+        assert_arraylist_trim(ex_constructor_ptr, stack_top.u_expression.constructors);
+    }
 }

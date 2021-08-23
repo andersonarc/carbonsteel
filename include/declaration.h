@@ -51,7 +51,8 @@ da_struct(ast_enum);
 dl_struct(ast_enum_member);
 
 da_struct(ast_type);
-da_enum(ast_type_level);
+da_struct(ast_type_level);
+d_enum(ast_type_level_kind);
 
 da_struct(ast_structure);
 dl_struct(ast_structure_member);
@@ -70,6 +71,10 @@ d_struct(ex_boolean);
 d_enum(ex_basic_kind);
 d_struct(ex_basic);
 
+d_struct(ex_constructor);
+typedef ex_constructor* ex_constructor_ptr;
+arraylist_declare(ex_constructor_ptr);
+
 d_struct(ex_number);
 d_enum(ex_number_kind);
 
@@ -84,8 +89,6 @@ d_enum(ex_unary_kind);
 da_enum(op_unary);
 
 d_struct(ex_cast);
-typedef ex_cast* ex_cast_ptr;
-arraylist_declare(ex_cast_ptr);
 
 d_biex(multiply);
 d_biex(addition);

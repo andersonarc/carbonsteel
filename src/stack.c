@@ -32,7 +32,7 @@ const char* stack_node_kind_strings[] = {
     "ST_VARIABLE", "ST_EXPRESSION",
     "ST_WHILE", "ST_JUMP", "ST_IF",
     "STATEMENT", "ST_COMPOUND", "BOOLEAN", "IMPORT",
-    "FUNCTION_PARAMETER"
+    "FUNCTION_PARAMETER", "EX_CONSTRUCTOR"
 };
 
     /* functions */
@@ -42,6 +42,7 @@ const char* stack_node_kind_strings[] = {
  */
 void stack_init() {
     assert_arraylist_init(stack_node, stack);
+    assert_arraylist_init(ex_constructor_ptr, expression_stack);
 }
 
 /**
@@ -69,6 +70,21 @@ stack_node stack_get(index_t index, stack_node_kind kind) {
     }
     stack_check_kind(stack.data[index], kind);
     return stack.data[index];
+}
+
+/**
+ * Finds the last stack node of specified kind 
+ * and removes it, or throws an internal error
+ * 
+ * @param[in] kind Kind of the node
+ * 
+ * @return The found node
+ */
+stack_node stack_find_remove(stack_node_kind kind) {
+    int index = stack_find_index(kind);
+    stack_node node = stack.data[index];
+    assert_arraylist_remove(stack_node, stack, index);
+    return node;
 }
 
 /**

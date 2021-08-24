@@ -24,20 +24,20 @@ arraylist_declare(string);
 
     /** ENUM **/
 
-struct ast_enum_member {
+struct dc_enum_member {
     char* name;
     ex_number* value;
 };
 
-struct ast_enum {
+struct dc_enum {
     char* name;
-    list(ast_enum_member) member_list;
+    list(dc_enum_member) member_list;
 };
 
 
     /** PRIMITIVE **/
 
-struct ast_primitive {
+struct dc_type_primitive {
     char* name;
     char* code_name;
     size_t size;
@@ -46,48 +46,48 @@ struct ast_primitive {
 
     /** ALIAS **/
 
-struct ast_alias {
+struct dc_alias {
     char* name;
-    ast_type* target;
+    dc_type* target;
 };
 
 
     /** TYPE **/
 
-enum ast_type_level_kind {
-    AST_TL_POINTER, AST_TL_ARRAY
+enum dc_type_level_kind {
+    DC_TL_POINTER, DC_TL_ARRAY
 };
 
-struct ast_type_level {
-    ast_type_level_kind kind;
+struct dc_type_level {
+    dc_type_level_kind kind;
 };
 
-struct ast_type {
+struct dc_type {
     enum {
-        AST_TK_PRIMITIVE, AST_TK_STRUCTURE,
-        AST_TK_ENUM, AST_TK_ALIAS
+        DC_TK_PRIMITIVE, DC_TK_STRUCTURE,
+        DC_TK_ENUM, DC_TK_ALIAS
     } kind;
-    arraylist(ast_type_level) level_list;
+    arraylist(dc_type_level) level_list;
     union {
-        ast_primitive* u_primitive;
-        ast_structure* u_structure;
-        ast_enum* u_enum;
-        ast_alias* u_alias;
+        dc_type_primitive* u_primitive;
+        dc_structure* u_structure;
+        dc_enum* u_enum;
+        dc_alias* u_alias;
     };
 };
 
 
     /** FUNCTION **/
 
-struct ast_function_parameter {
+struct dc_function_parameter {
     char* name;
-    ast_type type;
+    dc_type type;
 };
 
-struct ast_function {
+struct dc_function {
     char* name;
-    ast_type return_type;
-    list(ast_function_parameter) parameter_list;
+    dc_type return_type;
+    list(dc_function_parameter) parameter_list;
     st_compound body;
     arraylist(st_variable) _variable_stack;
 };
@@ -95,28 +95,49 @@ struct ast_function {
 
     /** STRUCTURE **/
 
-struct ast_structure_member {
+struct dc_structure_member {
     char* name;
-    ast_type type;
+    dc_type type;
 };
 
-struct ast_structure {
+struct dc_structure {
     char* name;
-    ast_function constructor;
-    list(ast_structure_member) member_list;
+    dc_function constructor;
+    list(dc_structure_member) member_list;
 };
 
 
     /** IMPORT **/
 
-struct ast_import {
+struct dc_import {
     arraylist(string) node_list;
+};
+
+
+    /** DECLARATION **/
+
+enum declaration_kind {
+    DC_IMPORT, DC_ALIAS, DC_STRUCTURE,
+    DC_ENUM, DC_FUNCTION, DC_ST_VARIABLE
+};
+    
+struct declaration {
+    declaration_kind kind;
+    char* name;
+    union {
+        dc_import u_import;
+        dc_alias u_alias;
+        dc_structure u_structure;
+        dc_enum u_enum;
+        dc_function u_function;
+        st_variable* u_st_variable;
+    };
 };
 
     /* stack functions */
 /**
  * @pop NAME
- * @init ast_structure (.name)
+ * @init dc_structure (.name)
  * @push STRUCTURE
  */
 void start_structure();
@@ -125,23 +146,20 @@ void start_structure();
  * @walk from STRUCTURE
  *  @get TYPE
  *  @get NAME
- * @init ast_structure (.member_list, .constructor) full
+ * @init dc_structure (.member_list, .constructor) full
  * @pop STRUCTURE
- * @declare ast_structure
  */
 void end_structure();
 
 /**
  * @find TYPE
- * @if kind == AST_TL___ARRAY_INITIALIZER
- *  @pop EXPRESSION
- * @init ast_type (.level_list)
+ * @init dc_type (.level_list)
  */
-void add_type_level(ast_type_level_kind kind);
+void add_type_level(dc_type_level_kind kind);
 
 /**
  * @pop NAME
- * @init ast_enum (.name)
+ * @init dc_enum (.name)
  * @push ENUM
  */
 void start_enum();
@@ -150,16 +168,15 @@ void start_enum();
  * @walk from ENUM
  *  @get NAME
  *  @get? NUMBER
- * @init ast_enum (.member_list) full
+ * @init dc_enum (.member_list) full
  * @pop ENUM
- * @declare ast_enum
  */
 void end_enum();
 
 /**
  * @pop NAME
  * @pop TYPE
- * @init ast_function (.name, .return_type)
+ * @init dc_function (.name, .return_type)
  * @push FUNCTION
  */
 void start_function();
@@ -168,7 +185,7 @@ void start_function();
  * @walk from FUNCTION
  *  @pop TYPE
  *  @pop NAME
- * @init ast_function (.parameter_list) full
+ * @init dc_function (.parameter_list) full
  */
 void add_function_parameters();
 
@@ -177,14 +194,13 @@ void add_function_parameters();
  * @walk from FUNCTION
  *  @pop TYPE
  *  @pop NAME
- * @init ast_function (.body) full
+ * @init dc_function (.body) full
  * @pop FUNCTION
- * @declare ast_function
  */
 void end_function();
 
 /**
- * @init ast_import
+ * @init dc_import
  * @push IMPORT
  */
 void start_import();
@@ -193,7 +209,6 @@ void start_import();
  * @walk
  *  @get NAME
  * @check size != 0
- * @declare ast_import
  * @pop IMPORT
  */
 void end_import();
@@ -201,8 +216,13 @@ void end_import();
 /**
  * @pop TYPE
  * @pop IDENTIFIER
- * @declare ast_alias
  */
 void add_alias();
+
+/**
+ * @pop IMPORT | ALIAS | STRUCTURE | ENUM | FUNCTION | VARIABLE
+ * @init declaration (.kind, .u_*)
+ */
+void add_declaration(declaration_kind kind);
 
 #endif /* CARBONSTEEL_TYPE_H */

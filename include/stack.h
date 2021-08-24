@@ -139,7 +139,19 @@ while (stack.size > index + 1) { stack_pop(); }
  * @param[in] node_kind       Kind of the node, lower-case and without prefix
  */
 #define stack_push_new_value(value, node_kind_upper, node_kind) \
-stack_node node_new;                               \
+stack_node node_new;                                            \
+stack_push_new_value_predeclared(value, node_kind_upper, node_kind)
+
+/**
+ * Creates a new stack node from the
+ * specified value of specified type
+ * with a predeclared stack_node node_new
+ * 
+ * @param[in] value           The node value
+ * @param[in] node_kind_upper Kind of the node, upper-case and without prefix
+ * @param[in] node_kind       Kind of the node, lower-case and without prefix
+ */
+#define stack_push_new_value_predeclared(value, node_kind_upper, node_kind) \
 node_new.kind = STACK_##node_kind_upper;           \
 node_new.u_##node_kind = value;                    \
 stack_push(node_new)
@@ -192,13 +204,13 @@ typedef struct stack_node {
     stack_node_kind kind;
     union {
         char* u_name;
-        ast_type u_type;
+        dc_type u_type;
         ex_number u_number;
         char* u_string;
-        ast_structure u_structure;
-        ast_enum u_enum;
-        ast_alias u_alias;
-        ast_function u_function;
+        dc_structure u_structure;
+        dc_enum u_enum;
+        dc_alias u_alias;
+        dc_function u_function;
         expression u_expression;
         ex_basic u_ex_basic;
         ex_postfix u_ex_postfix;
@@ -225,8 +237,8 @@ typedef struct stack_node {
         statement u_statement;
         st_compound u_st_compound;
         ex_boolean u_boolean;
-        ast_import u_import;
-        ast_function_parameter u_function_parameter;
+        dc_import u_import;
+        dc_function_parameter u_function_parameter;
         ex_constructor u_ex_constructor;
     };
 } stack_node;

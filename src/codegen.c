@@ -21,7 +21,7 @@
 #define cgtask(name) codegen_task_##name(file)
 
     /* forward declarations */
-cg_ast(type);
+cg_dc(type);
 cg_statement();
 cg_st(compound);
 cg_expression();
@@ -95,7 +95,7 @@ cg_ex(constructor) {
     } else {
         start:
         switch (ex->type->kind) {
-            case AST_TK_STRUCTURE:
+            case DC_TK_STRUCTURE:
                 if (ex->type->u_structure->member_list.size != ex->arguments.size) {
                     error_syntax("invalid argument count for a constructor");
                 }
@@ -126,12 +126,12 @@ cg_ex(constructor) {
                 
                 break;
 
-            case AST_TK_ALIAS:
+            case DC_TK_ALIAS:
                 ex->type = ex->type->u_alias->target;
                 goto start;
                 break;
 
-            case AST_TK_PRIMITIVE:
+            case DC_TK_PRIMITIVE:
                 if (ex->arguments.size != 1) {
                     error_syntax("invalid argument count for a constructor");
                 }
@@ -152,7 +152,7 @@ cg_ex(constructor) {
                 
                 break;
 
-            case AST_TK_ENUM:
+            case DC_TK_ENUM:
                 error_syntax("cannot construct an enum");
                 break;
 
@@ -164,60 +164,74 @@ cg_ex(constructor) {
 
     /** STRUCTURE **/
 
-cg_ast(structure_member) {
+cg_dc(structure_member) {
     out(tabs)();
 
-    cg(type)(&structure_member->type);
-    out(format)(" %s;\n", structure_member->name);
+    cg(type)(&dc->type);
+    out(format)(" %s;\n", dc->name);
 }
 
-cg_ast(structure) {
-    out(format)("typedef struct %s {\n", structure->name);
+cg_dc(structure) {
+    out(format)("typedef struct %s {\n", dc->name);
     
     tabs++;
-    iterate_array(i, structure->member_list.size) {
-        cg(structure_member)(&structure->member_list.data[i]);
+    iterate_array(i, dc->member_list.size) {
+        cg(structure_member)(&dc->member_list.data[i]);
     }
-    out(format)("} %s;\n\n", structure->name);
+    out(format)("} %s;\n\n", dc->name);
 }
 
 
     /** TYPE **/
 
-cg_ast(type) {
-    switch (type->kind) {
-        case AST_TK_PRIMITIVE:
-            out(string)(type->u_primitive->code_name);
+cg_dc(type) {
+    switch (dc->kind) {
+        case DC_TK_PRIMITIVE:
+            out(string)(dc->u_primitive->code_name);
             break;
 
-        case AST_TK_STRUCTURE:
-            if (type->u_structure->name != NULL) {
-                out(string)(type->u_structure->name);
+        case DC_TK_STRUCTURE:
+            if (dc->u_structure->name != NULL) {
+                out(string)(dc->u_structure->name);
             }
             break;
 
-        case AST_TK_ENUM:
-            if (type->u_enum->name != NULL) {
-                out(string)(type->u_enum->name);
+        case DC_TK_ENUM:
+            if (dc->u_enum->name != NULL) {
+                out(string)(dc->u_enum->name);
             }
             break;
 
-        case AST_TK_ALIAS:
-            out(string)(type->u_alias->name);
+        case DC_TK_ALIAS:
+            out(string)(dc->u_alias->name);
             break;
 
         otherwise_error
     }
-    iterate_array(i, type->level_list.size) {
-        switch (type->level_list.data[i].kind) {
-            case AST_TL_POINTER:
-            case AST_TL_ARRAY:
+    iterate_array(i, dc->level_list.size) {
+        switch (dc->level_list.data[i].kind) {
+            case DC_TL_POINTER:
+            case DC_TL_ARRAY:
                 out(char)('*');
                 break;
 
             otherwise_error
         }
     }
+}
+
+
+    /** ENUM **/
+
+cg_dc(enum) {
+    out(format)("typedef enum %s {\n", dc->name);
+    
+    tabs++;
+    iterate_array(i, dc->member_list.size) {
+        out(string)(dc->member_list.data[i].name);
+        //todo enum value generation
+    }
+    out(format)("} %s;\n\n", dc->name);
 }
 
 
@@ -452,6 +466,16 @@ cg_st(jump) {
 }
 
 
+    /** VARIABLE STATEMENT DECLARATION **/
+
+_codegen_declare(st_variable_declaration, st_variable* st) {
+    out(tabs)();
+    cg(type)(&st->type);
+
+    out(string)(";\n");
+}
+
+
     /** VARIABLE STATEMENT **/
 
 cg_st(variable) {
@@ -500,7 +524,7 @@ cg_statement() {
 }
 
 
-/** COMPOUND STATEMENT **/
+    /** COMPOUND STATEMENT **/
 
 cg_st(compound) {
     out(string)("{\n");
@@ -526,35 +550,56 @@ cg_st(compound) {
 }
 
 
-    /** FUNCTION **/
+    /** FUNCTION DECLARATION **/
 
-cg_ast(function) {
-    cg(type)(&function->return_type);
+_codegen_declare(function_declaration, dc_function* dc) {
+    cg(type)(&dc->return_type);
 
-    out(format)(" %s(", function->name);
-    if (!arraylist_is_empty(function->parameter_list)) {
-        index_t last = function->parameter_list.size - 1;
+    out(format)(" %s(", dc->name);
+    if (!arraylist_is_empty(dc->parameter_list)) {
+        index_t last = dc->parameter_list.size - 1;
 
         iterate_array(i, last) {
-            cg(type)(&function->parameter_list.data[i].type);
-            out(format)(" %s, ", function->parameter_list.data[i].name);
+            cg(type)(&dc->parameter_list.data[i].type);
+            out(format)(" %s, ", dc->parameter_list.data[i].name);
         }
 
-        cg(type)(&function->parameter_list.data[last].type);
-        out(format)(" %s", function->parameter_list.data[last].name);
+        cg(type)(&dc->parameter_list.data[last].type);
+        out(format)(" %s", dc->parameter_list.data[last].name);
+    }
+
+    out(string)(");\n\n");
+}
+
+    /** FUNCTION **/
+
+cg_dc(function) {
+    cg(type)(&dc->return_type);
+
+    out(format)(" %s(", dc->name);
+    if (!arraylist_is_empty(dc->parameter_list)) {
+        index_t last = dc->parameter_list.size - 1;
+
+        iterate_array(i, last) {
+            cg(type)(&dc->parameter_list.data[i].type);
+            out(format)(" %s, ", dc->parameter_list.data[i].name);
+        }
+
+        cg(type)(&dc->parameter_list.data[last].type);
+        out(format)(" %s", dc->parameter_list.data[last].name);
     }
     out(string)(") ");
-    cg(st_compound)(&function->body);
+    cg(st_compound)(&dc->body);
     out(char)('\n');
 }
 
 
     /** IMPORT **/
 
-cg_ast(import) {
+cg_dc(import) {
     out(string)("#include <");
-    iterate_array(i, import->size) {
-        out(string)(import->data[i]);
+    iterate_array(i, dc->size) {
+        out(string)(dc->data[i]);
     }
     out(string)(".h>\n");
 }
@@ -562,77 +607,112 @@ cg_ast(import) {
     
     /** ALIASES **/
 
-cg_ast(alias) {
+cg_dc(alias) {
     out(string)("typedef ");
-    cg(type)(alias->target);
+    cg(type)(dc->target);
     out(char)(' ');
-    out(string)(alias->name);
+    out(string)(dc->name);
     out(string)(";\n\n");
 }
 
     /* code generation tasks */
-cgtask_declare(prefix) {
-    out(string)("/* This file was generated by the CARBONSTEEL compiler */\n");
-    out(string)("#include <stdint.h>\n");
-    out(string)("#include <stdbool.h>\n");
-    out(string)("#include <stdio.h>\n");
+void codegen_task_source_prefix(FILE* file, char* header_name) {
+    out(string)("/* This source file was generated by the CARBONSTEEL compiler */\n");
+
+    out(string)("#include \"");
+    out(string)(header_name);
+    out(string)("\"\n");
+
     out(string)("/* Prefix end */\n\n");
 }
 
-cgtask_declare(functions) {
+cgtask_declare(header_prefix) {
+    out(string)("/* This header file was generated by the CARBONSTEEL compiler */\n");
+    out(string)("#include <stdint.h>\n");
+    out(string)("#include <stdbool.h>\n");
+    out(string)("/* Prefix end */\n\n");
+}
+
+cgtask_declare(definitions) {
     int tabs = 0;
-    iterate_array(i, ast.function_list.size) {
-        int tmp_value = 0;
-        int* tmp = &tmp_value;
-        cg(function)(&ast.function_list.data[i]);
+    int tmp_value = 0;
+    int* tmp = &tmp_value;
+
+    iterate_array(i, ast.declaration_list.size) {
+        declaration dc = ast.declaration_list.data[i];
+        switch (dc.kind) {
+            case DC_IMPORT:
+            case DC_STRUCTURE:
+            case DC_ALIAS:
+            case DC_ENUM:
+                break;
+
+            case DC_FUNCTION:
+                cg(function)(&dc.u_function);
+                break;
+
+            case DC_ST_VARIABLE:
+                cg(st_variable)(dc.u_st_variable);
+                break;
+
+            otherwise_error
+        }
     }
 }
 
-cgtask_declare(structures) {
+cgtask_declare(declarations) {
     int tabs = 0;
-    int* tmp = NULL;
-    iterate_array(i, ast.structure_list.size) {
-        cg(structure)(&ast.structure_list.data[i]);
-    }
-}
+    int tmp_value = 0;
+    int* tmp = &tmp_value;
 
-cgtask_declare(imports) {
-    int tabs = 0;
-    int* tmp = NULL;
-    iterate_array(i, ast.import_list.size) {
-        cg(import)(&ast.import_list.data[i]);
-    }
-    out(char)('\n');
-}
+    iterate_array(i, ast.declaration_list.size) {
+        declaration dc = ast.declaration_list.data[i];
+        switch (dc.kind) {
+            case DC_IMPORT:
+                cg(import)(&dc.u_import);
+                break;
 
-cgtask_declare(variables) {
-    int tabs = 0;
-    int* tmp = NULL;
-    iterate_array(i, ast.st_variable_list.size) {
-        cg(st_variable)(&ast.st_variable_list.data[i]);
-    }
-}
+            case DC_STRUCTURE:
+                cg(structure)(&dc.u_structure);
+                break;
 
-cgtask_declare(aliases) {
-    int tabs = 0;
-    int* tmp = NULL;
-    iterate_array(i, ast.alias_list.size) {
-        cg(alias)(&ast.alias_list.data[i]);
+            case DC_ALIAS:
+                cg(alias)(&dc.u_alias);
+                break;
+
+            case DC_ENUM:
+                cg(enum)(&dc.u_enum);
+                break;
+
+            case DC_FUNCTION:
+                cg(function_declaration)(&dc.u_function);
+                break;
+            
+            case DC_ST_VARIABLE:
+                out(string)("extern ");
+                cg(st_variable_declaration)(dc.u_st_variable);
+                break;
+
+            otherwise_error
+        }
     }
 }
 
     /* functions */
 /**
  * Does code generation into the
- * specified output file
+ * specified output source and header files
  * 
- * @param file The file
+ * @param source The source file
+ * @param header The header file
+ * @param header_name The header file name
  */
-void codegen(FILE* file) {
-    cgtask(prefix);
-    cgtask(imports);
-    cgtask(structures);
-    cgtask(aliases);
-    cgtask(variables);
-    cgtask(functions);
+void codegen(FILE* source, FILE* header, char* header_name) {
+    FILE* file = header;
+    cgtask(header_prefix);
+    cgtask(declarations);
+
+    file = source;
+    codegen_task_source_prefix(file, header_name);
+    cgtask(definitions);
 }

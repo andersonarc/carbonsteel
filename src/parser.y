@@ -230,8 +230,8 @@ import_level_list
 
 type
     : type_plain
-    | type '*' { add_type_level(AST_TL_POINTER); }
-	| type '[' ']' { add_type_level(AST_TL_ARRAY); }
+    | type '*' { add_type_level(DC_TL_POINTER); }
+	| type '[' ']' { add_type_level(DC_TL_ARRAY); }
 	;
 
 type_plain
@@ -332,12 +332,12 @@ translation_unit
 	;
 
 external_declaration
-	: function
-	| structure_declaration
-    | enum_declaration
-    | property_statement
-	| alias_declaration
-	| import_declaration
+	: function { add_declaration(DC_FUNCTION); }
+	| structure_declaration { add_declaration(DC_STRUCTURE); }
+    | enum_declaration { add_declaration(DC_ENUM); }
+    | property_statement { add_declaration(DC_ST_VARIABLE); }
+	| alias_declaration { add_declaration(DC_ALIAS); }
+	| import_declaration { add_declaration(DC_IMPORT); }
 	;
 
 function_parameter_list

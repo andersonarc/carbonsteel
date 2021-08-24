@@ -39,8 +39,6 @@ void add_st_variable() {
     if (function != NULL) {
         assert_arraylist_add(st_variable, function->u_function._variable_stack, value);
         stack_push_new(ST_VARIABLE, st_variable);
-    } else {
-        assert_arraylist_add(st_variable, ast.st_variable_list, value);
     }
 }
 

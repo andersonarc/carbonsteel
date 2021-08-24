@@ -163,7 +163,7 @@ struct ex_constructor {
     bool is_array;
     char* u_variable_name;
     expression* u_array_size;
-    ast_type* type;
+    dc_type* type;
     list(expression) arguments;
 };
 
@@ -181,13 +181,13 @@ struct ex_basic {
     ex_basic_kind kind;
     union {
         st_variable* u_variable;
-        ast_function* u_function;
+        dc_function* u_function;
         ex_number u_number;
         expression* u_expression;
         ex_boolean u_boolean;
         char* u_string;
         ex_constructor* u_constructor;
-        ast_function_parameter* u_function_parameter;
+        dc_function_parameter* u_function_parameter;
     };
 };
 
@@ -243,7 +243,7 @@ struct ex_unary {
 
 struct ex_cast {
     ex_unary value;
-    arraylist(ast_type) cast_list;
+    arraylist(dc_type) cast_list;
 };
 
 

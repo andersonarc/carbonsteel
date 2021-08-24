@@ -17,13 +17,8 @@
 
     /* typedefs */
 typedef struct ast_root {
-    arraylist(ast_enum) enum_list;
-    arraylist(ast_structure) structure_list;
-    arraylist(ast_alias) alias_list;
-    arraylist(ast_function) function_list;
-    arraylist(ast_import) import_list;
-    arraylist(st_variable) st_variable_list;
-    list(ast_primitive) primitive_list;
+    arraylist(declaration) declaration_list;
+    list(dc_type_primitive) primitive_list;
 } ast_root;
 
     /* global variables */

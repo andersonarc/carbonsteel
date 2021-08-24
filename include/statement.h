@@ -20,7 +20,7 @@
     /** PROPERTY **/
 
 struct st_variable {
-    ast_type type;
+    dc_type type;
     char* name;
     expression* value;
 };
@@ -95,7 +95,7 @@ struct st_compound_item {
  * @pop TYPE
  * @init st_variable (.name, .type, .value) full
  * @if stack has FUNCTION
- *  @init ast_function (._variable_stack)
+ *  @init dc_function (._variable_stack)
  *  @push ST_VARIABLE
  * @else
  *  @declare st_variable

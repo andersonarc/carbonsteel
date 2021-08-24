@@ -179,7 +179,7 @@ void add_ex_constructor(bool is_array) {
         expression ex = stack_pop_get(EXPRESSION, expression);
         value.u_array_size = copy_structure(ex);
     }
-    ast_type type = stack_pop_get(TYPE, type);
+    dc_type type = stack_pop_get(TYPE, type);
     value.type = copy_structure(type);
 
     /* push the node */
@@ -210,8 +210,8 @@ void add_ex_basic(ex_basic_kind kind) {
     
     /* declarations */
     st_variable variable;
-    ast_function function;
-    ast_function_parameter function_parameter;
+    dc_function function;
+    dc_function_parameter function_parameter;
     expression ex;
 
     /* check kind */
@@ -297,6 +297,8 @@ void add_ex_postfix_level(ex_postfix_level_kind kind) {
         case EX_PL_INDEX:
             /* [index] */
             stack_check_kind(stack_top, STACK_EXPRESSION);
+
+            //todo stack trimming when a walk pointer is active is UB, don't use stack pointers
 
             /* initialize level and remove from stack */
             level.u_index = copy_structure(stack_top.u_expression);
@@ -416,7 +418,7 @@ void start_ex_cast() {
     node.u_ex_cast.value = stack_find_pop(STACK_EX_UNARY).u_ex_unary;
 
     /* init lists and push new node */
-    assert_arraylist_init_empty(ast_type, node.u_ex_cast.cast_list);
+    assert_arraylist_init_empty(dc_type, node.u_ex_cast.cast_list);
     stack_push(node);
 }
 
@@ -428,7 +430,7 @@ void add_ex_cast_level() {
     stack_node* node = stack_find(STACK_EX_CAST);
 
     /* add a new cast level */
-    assert_arraylist_add(ast_type, node->u_ex_cast.cast_list, stack_find_pop(STACK_TYPE).u_type);
+    assert_arraylist_add(dc_type, node->u_ex_cast.cast_list, stack_find_pop(STACK_TYPE).u_type);
     logd("casted");
 }
 
@@ -441,7 +443,7 @@ void end_ex_cast() {
 
     /* trim lists */
     if (stack_top.u_ex_cast.cast_list.size > 0) {
-        assert_arraylist_trim(ast_type, stack_top.u_ex_cast.cast_list);
+        assert_arraylist_trim(dc_type, stack_top.u_ex_cast.cast_list);
     }
 }
 

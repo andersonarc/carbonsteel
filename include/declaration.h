@@ -44,26 +44,28 @@
         /* type declarations */
 
     /* lexical types */
-dl_struct(ast_primitive);
-da_struct(ast_alias);
+dl_struct(dc_type_primitive);
+d_struct(dc_alias);
 
-da_struct(ast_enum);
-dl_struct(ast_enum_member);
+d_struct(dc_enum);
+dl_struct(dc_enum_member);
 
-da_struct(ast_type);
-da_struct(ast_type_level);
-d_enum(ast_type_level_kind);
+da_struct(dc_type);
+da_struct(dc_type_level);
+d_enum(dc_type_level_kind);
 
-da_struct(ast_structure);
-dl_struct(ast_structure_member);
+d_struct(dc_structure);
+dl_struct(dc_structure_member);
 
-da_struct(ast_function);
-dl_struct(ast_function_parameter);
+d_struct(dc_function);
+dl_struct(dc_function_parameter);
 
-typedef char* ast_import_level;
-list_declare(ast_import_level);
-typedef list(ast_import_level) ast_import;
-arraylist_declare(ast_import);
+typedef char* dc_import_level;
+list_declare(dc_import_level);
+typedef list(dc_import_level) dc_import;
+
+d_enum(declaration_kind);
+da_struct(declaration);
 
     /* expressions */
 d_struct(ex_boolean);

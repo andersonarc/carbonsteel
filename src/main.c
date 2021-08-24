@@ -47,15 +47,25 @@ int main(int argc, const char* argv[]) {
 
         /* set output */
         size_t input_name_length = strlen(argv[i]);
-        char* output_name = malloc(input_name_length + sizeof(".c"));
-        strncpy(output_name, argv[i], input_name_length);
-        strncpy(&output_name[input_name_length], ".c", 3);
-        FILE* output = fopen(output_name, "w");
-        if (output == NULL) {
-            loge("Unable to open file %s for output", output_name);
+
+        char* source_name = malloc(input_name_length + sizeof(".c"));
+        strncpy(source_name, argv[i], input_name_length);
+        strncpy(&source_name[input_name_length], ".c", 3);
+        FILE* source = fopen(source_name, "w");
+        if (source == NULL) {
+            loge("Unable to open file %s for output", source_name);
             continue;
         }
-        free(output_name);
+        free(source_name);
+
+        char* header_name = malloc(input_name_length + sizeof(".c"));
+        strncpy(header_name, argv[i], input_name_length);
+        strncpy(&header_name[input_name_length], ".h", 3);
+        FILE* header = fopen(header_name, "w");
+        if (header == NULL) {
+            loge("Unable to open file %s for output", header_name);
+            continue;
+        }
 
         /* parse */
         if (yyparse() != 0) {
@@ -64,11 +74,13 @@ int main(int argc, const char* argv[]) {
         }
 
         /* do code generation */
-        codegen(output);
+        codegen(source, header, header_name);
 
         /* close the files */
         fclose(input);
-        fclose(output);
+        fclose(source);
+        fclose(header);
+        free(header_name);
     }
 
     /* success */

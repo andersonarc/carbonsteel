@@ -20,7 +20,7 @@
     /* defines */
 /**
  * Declares a code generation function
- * for an expression/statement/AST element
+ * for an expression/statement/declaration
  * 
  * @param[in] name Name of the element
  */
@@ -29,7 +29,7 @@
 #define cg_expression() _codegen_declare(expression, expression* ex)
 #define cg_st(name) _codegen_declare(st_##name, st_##name* st)
 #define cg_statement() _codegen_declare(statement, statement* st)
-#define cg_ast(name) _codegen_declare(name, ast_##name* name)
+#define cg_dc(name) _codegen_declare(name, dc_##name* dc)
 
 /**
  * Invokes a code generation function
@@ -55,10 +55,12 @@
     /* functions */
 /**
  * Does code generation into the
- * specified output file
+ * specified output source and header files
  * 
- * @param file The file
+ * @param source The source file
+ * @param header The header file
+ * @param header_name The header file name
  */
-void codegen(FILE* file);
+void codegen(FILE* source, FILE* header, char* header_name);
 
 #endif /* CARBONSTEEL_CODEGEN_H */

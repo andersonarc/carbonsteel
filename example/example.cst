@@ -1,11 +1,11 @@
+int* get_int_ptr(int value) {
+    return new int(value);
+}
+
 type foo {
     int* a;
     byte b;
 };
-
-int* get_int_ptr(int value) {
-    return new int(value);
-}
 
 foo[] bar(int count) {
     foo[] values = foo[5](

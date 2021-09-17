@@ -6,12 +6,14 @@
  * 
  *  Compiler main function and interface
  */
-#include "ast.h" /* ast */
+    /* includes */
+#include "ast/root.h" /* ast */
+#include "codegen/codegen.h" /* code generation */
 #include "parser.h" /* parser */
 #include "lexer.h" /* lexer */
-#include "stack.h" /* stack */
-#include "codegen.h" /* code generation */
+#include "misc/memory.h" /* memory allocation */
 
+    /* functions */
 /**
  * Compiler entrypoint
  * 
@@ -33,7 +35,6 @@ int main(int argc, const char* argv[]) {
 
     /* initialize the compiler */
     ast_init();
-    stack_init();
 
     /* compile each file */
     iterate_range_single(i, 2, argc) {
@@ -43,12 +44,16 @@ int main(int argc, const char* argv[]) {
             loge("Unable to open file %s", argv[i]);
             continue;
         }
-        yyset_in(input);
+        yyscan_t scanner;
+        if (yylex_init(&scanner) != 0) {
+            logfe("unable to initizize the yacc scanner");
+        }
+        yyset_in(input, scanner);
 
         /* set output */
         size_t input_name_length = strlen(argv[i]);
 
-        char* source_name = malloc(input_name_length + sizeof(".c"));
+        char* source_name = allocate_array(char, input_name_length + sizeof(".c"));
         strncpy(source_name, argv[i], input_name_length);
         strncpy(&source_name[input_name_length], ".c", 3);
         FILE* source = fopen(source_name, "w");
@@ -58,7 +63,7 @@ int main(int argc, const char* argv[]) {
         }
         free(source_name);
 
-        char* header_name = malloc(input_name_length + sizeof(".c"));
+        char* header_name = allocate_array(char, input_name_length + sizeof(".c"));
         strncpy(header_name, argv[i], input_name_length);
         strncpy(&header_name[input_name_length], ".h", 3);
         FILE* header = fopen(header_name, "w");
@@ -68,7 +73,7 @@ int main(int argc, const char* argv[]) {
         }
 
         /* parse */
-        if (yyparse() != 0) {
+        if (yyparse(scanner, context_new()) != 0) {
             printf("Parsing file %s failed", argv[i]);
             continue;
         }

@@ -1,0 +1,49 @@
+import foo.bar.baz;
+import a;
+
+alias size_t = int;
+
+enum buffer_state_t {
+    WRITE = 1, READ = 0.0, NONE
+};
+
+type buffer_t {
+    buffer_state_t state;
+    size_t size;
+    byte[] data;
+};
+
+int puts(byte[] string) {}
+
+void bwrite(buffer_t* buffer) {
+    buffer->state = buffer_state_t.WRITE;
+    
+    long index = 0;
+    float coefficient = 3.14;
+    while (index < buffer->size) {
+        buffer->data[index] = index + coefficient;
+        index++;
+        coefficient *= index;
+    }
+
+    buffer->state = buffer_state_t.NONE;
+}
+
+void bread(buffer_t* buffer) {
+    buffer->state = buffer_state_t.READ;
+
+    long index = 0;
+    while (index < buffer->size) {
+        puts(byte[2]('0' + (buffer->data[index] % 10), 0));
+        index++;
+    }
+
+    buffer->state = buffer_state_t.NONE;
+}
+
+void main() {
+    buffer_t* b = new buffer_t(buffer_state_t.NONE, 10, byte[10](0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+
+    bwrite(b);
+    bread(b);
+}

@@ -1,0 +1,47 @@
+alias row = bool[];
+
+type field {
+    row[] field;
+    int columns;
+    int rows;
+};
+
+type player {
+    byte[] name;
+    byte** level;
+};
+
+type game {
+    field* value;
+    player[] players;
+};
+
+void func(game g) {
+    return;
+}
+
+void main() {
+    game root = game(
+        new field(
+            row[5](
+                bool[5](false, false, false, false, false),
+                bool[5](false, false, true , false, false),
+                bool[5](false, false, true , false, false),
+                bool[5](false, true , false, true , false),
+                bool[5](false, false, true , false, false)
+            ),
+            5,
+            5
+        ),
+        player[2](
+            player(
+                "Player1",
+                new byte*(new byte(77))
+            ),
+            player(
+                "Player2",
+                new byte*(new byte(2))
+            )
+        )
+    );
+}

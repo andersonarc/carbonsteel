@@ -1,0 +1,126 @@
+enum cz_cell {
+    CROSS, ZERO
+};
+
+alias cz_row = cz_cell[];
+
+alias size_t = int;
+
+type cz_field {
+    cz_row[] data;
+    size_t size;
+};
+
+cz_field* create_cz_field() {
+    return new cz_field(
+        new cz_row[5](
+            new cz_cell[5](cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO),
+            new cz_cell[5](cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO),
+            new cz_cell[5](cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO),
+            new cz_cell[5](cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO),
+            new cz_cell[5](cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO, cz_cell.ZERO)
+        ),
+        5
+    );
+}
+
+bool check_win(cz_field* field, cz_cell expected) {
+    size_t x_start_index = 0;
+    size_t y_start_index = 0;
+   
+    while (x_start_index != field->size) {
+        while (y_start_index != field->size) {
+            size_t y_index = y_start_index;
+            size_t x_index = x_start_index;
+            y_start_index++;
+            size_t count = 1;
+
+            cz_cell current = field->data[y_index][x_index];
+            if (current != expected) {
+                continue;
+            }
+
+            if (y_start_index == 0) {
+                while (y_index < field->size) {
+                    cz_cell y_neighbor = field->data[y_index++][x_index];
+
+                    if (y_neighbor == expected) {
+                        count++;
+                        if (count == field->size) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            if (x_start_index == 0) {
+                while (x_index != field->size) {
+                    cz_cell x_neighbor = field->data[y_index][x_index++];
+                    if (x_neighbor == expected) {
+                        count++;
+                        if (count == field->size) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (x_start_index == 0 && y_start_index == 0) {
+                while (x_index != field->size || y_index != field->size) {
+                    cz_cell xy_neighbor = field->data[y_index++][x_index++];
+                    if (xy_neighbor == expected) {
+                        count++;
+                        if (count == field->size) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (x_start_index == 0 && y_start_index == field->size - 1) {
+                while (x_index != field->size || y_index != 0) {
+                    cz_cell yx_neighbor = field->data[y_index--][x_index++];
+                    if (yx_neighbor == expected) {
+                        count++;
+                        if (count == field->size) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        x_start_index++;
+    }
+
+    return false;
+}
+
+void printf(byte[] string) {}
+
+void scanf(byte[] string, size_t* a, size_t* b) {}
+
+void game() {
+    cz_field* field = create_cz_field();
+    bool is_crosses = true;
+
+    while (!check_win(field, (is_crosses ? cz_cell.ZERO : cz_cell.CROSS))) {
+        if (is_crosses) {
+            printf("Crosses turn, enter XY coordinates: ");
+        } else {
+            printf("Zeroes turn, enter XY coordinates: ");
+        }
+
+        size_t x = field->size;
+        size_t y = field->size;
+        scanf("%d %d", &x, &y);
+
+        if (x < field->size && y < field->size) {
+            field->data[y][x] = is_crosses ? cz_cell.CROSS : cz_cell.ZERO;
+        } else {
+            printf("Invalid coordinates, enter again");
+            continue;
+        }
+
+        is_crosses = !is_crosses;
+    }
+}

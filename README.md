@@ -1,8 +1,9 @@
 # carbonsteel
 
-[The logo](https://raw.githubusercontent.com/andersonarc/carbonsteel/master/logo.svg)
+![](https://raw.githubusercontent.com/andersonarc/carbonsteel/master/logo.svg)
 
-This project is a programming language transpiler designed to fix old issues and introduce new features without changing the old-style C syntax.
+Programming language transpiler designed to fix existing issues and introduce new features without changing the old-style C syntax.  
+&nbsp;
 
 ### Differences from C
 

@@ -17,6 +17,7 @@
 
     /* includes */
 #include "ast/declaration.h" /* ast declaration type */
+#include "ast/root.h" /* ast root type */
 
     /* global variables */
 /**
@@ -73,6 +74,7 @@ arraylist_declare(se_context_level);
  */
 typedef struct se_context {
     arraylist(se_context_level) stack;
+    ast_root ast;
 } se_context;
 
 

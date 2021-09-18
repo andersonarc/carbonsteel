@@ -126,9 +126,11 @@ struct declaration {
 };
 
 
-    /* parser functions */
-void new_type_declaration(declaration* this, declaration_kind kind, int token_kind, void* value, char* name);
-void new_declaration(declaration* this, declaration_kind kind, void* value);
+    /* functions */
+
+void new_type_declaration(ast_root* ast, declaration* this, declaration_kind kind, int token_kind, void* value, char* name);
+
+void new_declaration(ast_root* ast, declaration* this, declaration_kind kind, void* value);
 
 
 #endif /* CARBONSTEEL_SYNTAX_DECLARATION_H */

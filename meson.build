@@ -9,16 +9,16 @@ flex = find_program('flex')
 bison = find_program('bison')
 
 # generated sources and headers
-lexer = custom_target('lexer', 
+mlexer = custom_target('mlexer', 
     build_by_default: true,
-    input: 'src/parser/lexer.l', 
-    output: ['lexer.c', 'lexer.h'],
-    command: [flex, '-o', 'lexer.c', '@INPUT@'])
-parser = custom_target('parser', 
+    input: 'src/parser/mlexer.l', 
+    output: ['mlexer.c', 'mlexer.h'],
+    command: [flex, '@INPUT@'])
+mparser = custom_target('mparser', 
     build_by_default: true,
-    input: 'src/parser/parser.y', 
-    output: ['parser.c', 'parser.h'],
-    command: [bison, '--defines=parser.h', '-o', 'parser.c', '@INPUT@'])
+    input: 'src/parser/mparser.y', 
+    output: ['mparser.c', 'mparser.h'],
+    command: [bison, '--defines=mparser.h', '-o', 'mparser.c', '@INPUT@'])
 
 # c compiler arguments
 c_args = ['-Wno-unused-function']
@@ -31,6 +31,7 @@ ctool = dependency('ctool',
 
 # prepare build files
 src = files('src/main.c', 
+            'src/ast/lookup.c',
             'src/ast/root.c', 
             'src/ast/type.c', 
             'src/codegen/codegen.c',
@@ -44,7 +45,7 @@ src = files('src/main.c',
 include = include_directories('include')
 
 # compile executable
-executable('carbonsteel', [src, parser, lexer],
+executable('carbonsteel', [src, mparser, mlexer],
     include_directories: include,
     dependencies: [ctool, math],
     c_args: c_args)

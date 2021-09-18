@@ -1,5 +1,5 @@
 /**
- * @file lexer.l
+ * @file mlexer.l
  * @author andersonarc (e.andersonarc@gmail.com)
  * @author jutta@pobox.com
  * @version 0.2
@@ -42,8 +42,10 @@ WS     [ \t\v\f]
 %{
 
         /* includes */
-    #include "ast/root.h" /* syntax tree */
-    #include "misc/memory.h" /* copying */
+    #include "ast/root.h"    /* syntax tree */
+    #include "ast/lookup.h"  /* ast lookup */
+    #include "mparser.h"     /* parser */
+    #include "misc/memory.h" /* memory copying */
 
         /* functions */
     /**
@@ -63,12 +65,17 @@ WS     [ \t\v\f]
     * @return The character constant
     */
     char parse_character_constant(char* value);
+
+    #define YYSTYPE MPSTYPE
+	#define YYLTYPE MPLTYPE
+	#define YY_DECL int mplex(MPSTYPE* yylval_param, MPLTYPE* yylloc_param, void* yyscanner, se_context* context)
     
 %}
 
-%option reentrant
-%option bison-bridge
-%option header-file="lexer.h"
+%option prefix="mp"
+%option reentrant bison-bridge bison-locations
+%option warn nodefault
+%option outfile="mlexer.c" header-file="mlexer.h"
 
 %%
 
@@ -107,7 +114,7 @@ WS     [ \t\v\f]
                             }
 
     /* identifier */
-{AZ}{AN}*		            { return ast_lex_token(yylval_param, yytext, context); }
+{AZ}{AN}*		            { return ast_lex_token(context, yylval_param, yytext); }
 
 
     /* integer constants */
@@ -233,7 +240,7 @@ WS     [ \t\v\f]
 
     /* misc tokens */
 {WS}+			    { /* whitespaces separate tokens */ }
-"\n"                { location->first_line++; location->last_line++; }
+"\n"                { yylloc_param->first_line++; yylloc_param->last_line++; }
 .					{ /* discard bad characters */      }
 
 %%

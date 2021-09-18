@@ -9,9 +9,9 @@
     /* includes */
 #include "ast/root.h" /* ast */
 #include "codegen/codegen.h" /* code generation */
-#include "parser.h" /* parser */
-#include "lexer.h" /* lexer */
 #include "misc/memory.h" /* memory allocation */
+#include "mparser.h" /* parser */
+#include "parser/mlexerw.h" /* lexer */
 
     /* functions */
 /**
@@ -33,8 +33,7 @@ int main(int argc, const char* argv[]) {
         logfe("Please specify which files to compile after the compiler action");
     }
 
-    /* initialize the compiler */
-    ast_init();
+    primitive_list_init();
 
     /* compile each file */
     iterate_range_single(i, 2, argc) {
@@ -45,10 +44,10 @@ int main(int argc, const char* argv[]) {
             continue;
         }
         yyscan_t scanner;
-        if (yylex_init(&scanner) != 0) {
+        if (mplex_init(&scanner) != 0) {
             logfe("unable to initizize the yacc scanner");
         }
-        yyset_in(input, scanner);
+        mpset_in(input, scanner);
 
         /* set output */
         size_t input_name_length = strlen(argv[i]);
@@ -73,13 +72,14 @@ int main(int argc, const char* argv[]) {
         }
 
         /* parse */
-        if (yyparse(scanner, context_new()) != 0) {
+        se_context* context = context_new();
+        if (mpparse(scanner, context) != 0) {
             printf("Parsing file %s failed", argv[i]);
             continue;
         }
 
         /* do code generation */
-        codegen(source, header, header_name);
+        codegen(&context->ast, source, header, header_name);
 
         /* close the files */
         fclose(input);

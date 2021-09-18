@@ -17,6 +17,7 @@
 #include "ast/root.h" /* primitive types */
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "syntax/expression/unary.h" /* unary expressions */
+#include "mparser.h" /* parser */
 
     /* functions */
 /**
@@ -97,8 +98,8 @@ ast_type* ast_type_merge_extend(ast_type* a, ast_type* b) {
 
     /* number implicit casting */
     if (ast_type_is_number(a) && ast_type_is_number(b)) {
-        int a_index = a->u_primitive - ast.primitive_list.data;
-        int b_index = b->u_primitive - ast.primitive_list.data;
+        int a_index = a->u_primitive - primitive_list.data;
+        int b_index = b->u_primitive - primitive_list.data;
 
         /* find the bigger number */
         if (a_index > 1 && b_index > 1) {
@@ -225,7 +226,7 @@ bool ast_type_is_boolean(ast_type* value) {
     if (!ast_type_is_primitive(value)) return false;
 
     /* check primitive type index */
-    int index = value->u_primitive - ast.primitive_list.data;
+    int index = value->u_primitive - primitive_list.data;
     if (index != 1) return false;
 
     return true;
@@ -244,7 +245,7 @@ bool ast_type_is_number(ast_type* value) {
     if (!ast_type_is_primitive(value)) return false;
 
     /* check primitive type index */
-    int index = value->u_primitive - ast.primitive_list.data;
+    int index = value->u_primitive - primitive_list.data;
     if (index < 2 /* void or bool */) return false;
 
     return true;
@@ -303,11 +304,11 @@ ast_type* ast_type_of_ex_number(ex_number_kind kind) {
     /* check number kind */
     switch (kind) {
         case EX_N_FLOAT:
-            primitive = &ast.primitive_list.data[7];
+            primitive = &primitive_list.data[7];
             break;
 
         case EX_N_INT:
-            primitive = &ast.primitive_list.data[4];
+            primitive = &primitive_list.data[4];
             break;
 
         otherwise_error
@@ -325,7 +326,7 @@ ast_type* ast_type_of_ex_number(ex_number_kind kind) {
  */
 ast_type* ast_type_of_boolean() {
     /* return a new boolean type */
-    return ast_type_new(AST_TYPE_PRIMITIVE, &ast.primitive_list.data[1]);
+    return ast_type_new(AST_TYPE_PRIMITIVE, &primitive_list.data[1]);
 }
 
 /**
@@ -335,7 +336,7 @@ ast_type* ast_type_of_boolean() {
  */
 ast_type* ast_type_of_character() {
     /* return a new byte type */
-    return ast_type_new(AST_TYPE_PRIMITIVE, &ast.primitive_list.data[2]);
+    return ast_type_new(AST_TYPE_PRIMITIVE, &primitive_list.data[2]);
 }
 
 /**

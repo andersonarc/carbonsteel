@@ -1,5 +1,5 @@
 /**
- * @file parser.y
+ * @file mparser.y
  * @author andersonarc (e.andersonarc@gmail.com)
  * @author jutta@pobox.com
  * @version 0.2
@@ -37,9 +37,7 @@
 	* @param[in] context Current compiler context
 	* @param[in] message The error message
 	*/
-	void yyerror(YYLTYPE* location, void* scanner, se_context* context, const char* message);
-
-	#define YY_DECL int yylex(YYSTYPE* yylval_param, YYLTYPE* location, void* yyscanner, se_context* context)
+	void mperror(MPLTYPE* location, void* scanner, se_context* context, const char* message);
 }
 
 %{	
@@ -50,9 +48,9 @@
 
 	#include "parser/context.h" /* parser context */
 	#include "misc/union.h" /* union initialization */
-	#include "parser.h" /* parser header */
+	#include "mparser.h" /* parser header */
 
-	#include "lexer.h" /* lexer header */
+	int mplex(MPSTYPE* yylval_param, MPLTYPE* yylloc_param, void* yyscanner, se_context* context);
 %}
 
 
@@ -65,7 +63,8 @@
 %param {se_context* context} /* track the context as a parameter */
 
 %define api.token.prefix {TOKEN_} /* add a token prefix to avoid collisions */
-%define api.value.type union /* use a union type */
+%define api.prefix {mp}			  /* add an api prefix to support multiple parsers */
+%define api.value.type union 	  /* use a union type */
 
 %define parse.error custom  /* use custom error handling */
 %define api.pure 	full 	/* use pure parser interface */
@@ -279,37 +278,37 @@ declaration_list
 	;
 
 declaration
-	: structure_declaration 			{ 	new_type_declaration(&$$, 
+	: structure_declaration 			{ 	new_type_declaration(&context->ast, &$$, 
 												DC_STRUCTURE, TOKEN_STRUCTURE_NAME, 
 												$structure_declaration, 
 												$structure_declaration->name 
 										); }
 
-    | enum_declaration					{ 	new_type_declaration(&$$, 
+    | enum_declaration					{ 	new_type_declaration(&context->ast, &$$, 
 												DC_ENUM, TOKEN_ENUM_NAME, 
 												$enum_declaration, 
 												$enum_declaration->name 
 										); }
 
-	| alias_declaration					{ 	new_type_declaration(&$$, 
+	| alias_declaration					{ 	new_type_declaration(&context->ast, &$$, 
 												DC_ALIAS, TOKEN_ALIAS_NAME, 
 												$alias_declaration, 
 												$alias_declaration->name 
 										); }
 
-	| function_declaration  			{ 	new_type_declaration(&$$, 			
+	| function_declaration  			{ 	new_type_declaration(&context->ast, &$$, 			
 												DC_FUNCTION, TOKEN_FUNCTION_NAME, 
 												$function_declaration, 	
 												$function_declaration->name
 										); }
 
-    | variable_declaration_statement	{ 	new_type_declaration(&$$, 			
+    | variable_declaration_statement	{ 	new_type_declaration(&context->ast, &$$, 			
 												DC_ST_VARIABLE, TOKEN_VARIABLE_NAME, 
 												$variable_declaration_statement, 	
 												$variable_declaration_statement->name
 										); }
 
-	| import_declaration				{	new_declaration(&$$, DC_IMPORT, $import_declaration); }
+	| import_declaration				{	new_declaration(&context->ast, &$$, DC_IMPORT, $import_declaration); }
 	;
 
 function_declaration
@@ -1141,7 +1140,7 @@ jump_statement
  * @param[in] context Current compiler context
  * @param[in] message The error message
  */
-void yyerror(YYLTYPE* location, void* scanner, se_context* context, const char* message) {
+void yyerror(MPLTYPE* location, void* scanner, se_context* context, const char* message) {
 	error_syntax("%s", message);
 }
 
@@ -1160,7 +1159,7 @@ char* error_format_string(int argc) {
   	}
 }
 
-void location_print (FILE *out, YYLTYPE const * const loc) {
+void location_print (FILE *out, MPLTYPE const * const loc) {
   fprintf (out, "%d.%d", loc->first_line, loc->first_column);
 
   int end_col = 0 != loc->last_column ? loc->last_column - 1 : 0;
@@ -1183,7 +1182,7 @@ int yyreport_syntax_error(const yypcontext_t* yyctx, void* yyscanner, se_context
     argsize = ARGS_MAX;
   const char *format = error_format_string(1 + argsize + too_many_expected_tokens);
 
-  const YYLTYPE *loc = yypcontext_location (yyctx);
+  const MPLTYPE *loc = yypcontext_location (yyctx);
   while (*format)
     // %@: location.
     if (format[0] == '%' && format[1] == '@')

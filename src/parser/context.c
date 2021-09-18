@@ -34,6 +34,9 @@ se_context* context_new() {
     se_context_level global = { .kind = SCTX_GLOBAL };
     arl_add(se_context_level, context->stack, global);
 
+    /* initialize the AST */
+    ast_init(&context->ast);
+
     return context;
 }
 

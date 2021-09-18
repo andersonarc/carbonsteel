@@ -19,84 +19,68 @@
 #define CARBONSTEEL_AST_ROOT_H
 
     /* includes */
+#define _GNU_SOURCE
 #include <search.h> /* hash table search */
+#undef  _GNU_SOURCE
 
-#include "parser/context.h" /* parser context */
-#include "misc/list.h"      /* list utilities */
-#include "parser.h"         /* parser */
-
+#include "misc/list.h" /* list utilities */
+#include "syntax/predeclaration.h" /* predeclarations */
 
     /* typedefs */
 /**
  * Abstract syntax tree root
  * that contains the list of all 
- * declarations and primitive types
+ * declarations
  */
 typedef struct ast_root {
     arraylist(declaration) declaration_list;
-    list(ast_type_primitive) primitive_list;
+    struct hsearch_data* hash_table;
 } ast_root;
 
 
     /* global variables */
 /**
- * Storage variable for the abstract syntax tree
+ * Primitive type list
+ * 
+ * Primitive types are ordered by
+ * size/precision and their order is constant,
+ * so pointer comparisons are acceptable
  */
-extern ast_root ast;
+extern list(ast_type_primitive) primitive_list;
 
 
     /* functions */
 /**
- * Initializes the abstract syntax tree
- * and its primitive type list
+ * Initializes the primitive type list
  */
-void ast_init();
+void primitive_list_init();
+
+/**
+ * Initializes an abstract syntax tree instance
+ * 
+ * @param[out] ast Pointer to the AST
+ */
+void ast_init(ast_root* ast);
 
 
 /**
- * Adds a new entry to the lookup table
+ * Adds a new entry to the AST lookup table
  * 
+ * @param[in] ast   Pointer to the AST
  * @param[in] entry The entry
  */
-void ast_add_entry(ENTRY entry);
+void ast_add_entry(ast_root* ast, ENTRY entry);
 
 
 /**
- * Creates and adds a new value entry to the symbol table
+ * Creates and adds a new value entry to the AST lookup table
  * 
+ * @param[in] ast   Pointer to the AST
  * @param[in] name  Name of the entry
  * @param[in] kind  Kind of the token
  * @param[in] value The value
  */
-void ast_add_new_entry(char* name, int kind, void* value);
-
-
-/**
- * Looks up the lexical type of a token
- * and assigns its semantic value from
- * the declaration table
- * 
- * @param[out] yylval  Sematic value of the token
- * @param[in]  token   The token string
- * @param[in]  context The parser context
- * 
- * @return Type of the token, or IDENTIFIER
- */
-int ast_lex_token(YYSTYPE* yylval, char* token, se_context* context);
-
-
-/**
- * Recursively checks the context stack to
- * determine the kind of an identifier
- * and assigns 
- * 
- * @param[out] yylval  Sematic value of the token
- * @param[in] token The identifier
- * @param[in] context Pointer to the parser context
- * 
- * @return Token kind, or -1 if not found
- */
-int context_lex_token(YYSTYPE* yylval, char* token, se_context* context);
+void ast_add_new_entry(ast_root* ast, char* name, int kind, void* value);
 
 
 #endif /* CARBONSTEEL_AST_ROOT_H */

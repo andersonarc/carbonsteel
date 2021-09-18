@@ -22,7 +22,9 @@
  * Code generation task (for structures, functions, etc.)
  * declaration and invocation macro
  */
+#define cgtask_declare_ast(name) void macro_concatenate(codegen_task_, name)(FILE* file, ast_root* ast)
 #define cgtask_declare(name) void macro_concatenate(codegen_task_, name)(FILE* file)
+#define cgtask_ast(name) macro_concatenate(codegen_task_, name)(file, ast)
 #define cgtask(name) macro_concatenate(codegen_task_, name)(file)
 
     /* forward declarations */
@@ -701,13 +703,13 @@ cgtask_declare(header_prefix) {
     out(string)("/* Prefix end */\n\n");
 }
 
-cgtask_declare(definitions) {
+cgtask_declare_ast(definitions) {
     int tabs = 0;
     int tmp_value = 0;
     int* tmp = &tmp_value;
 
-    iterate_array(i, ast.declaration_list.size) {
-        declaration dc = ast.declaration_list.data[i];
+    iterate_array(i, ast->declaration_list.size) {
+        declaration dc = ast->declaration_list.data[i];
         switch (dc.kind) {
             case DC_IMPORT:
             case DC_STRUCTURE:
@@ -728,13 +730,13 @@ cgtask_declare(definitions) {
     }
 }
 
-cgtask_declare(declarations) {
+cgtask_declare_ast(declarations) {
     int tabs = 0;
     int tmp_value = 0;
     int* tmp = &tmp_value;
 
-    iterate_array(i, ast.declaration_list.size) {
-        declaration dc = ast.declaration_list.data[i];
+    iterate_array(i, ast->declaration_list.size) {
+        declaration dc = ast->declaration_list.data[i];
         switch (dc.kind) {
             case DC_IMPORT:
                 cg(import)(dc.u_import);
@@ -765,21 +767,23 @@ cgtask_declare(declarations) {
     }
 }
 
+
     /* functions */
 /**
  * Does code generation into the
  * specified output source and header files
  * 
+ * @param ast The abstract syntax tree
  * @param source The source file
  * @param header The header file
  * @param header_name The header file name
  */
-void codegen(FILE* source, FILE* header, char* header_name) {
+void codegen(ast_root* ast, FILE* source, FILE* header, char* header_name) {
     FILE* file = header;
     cgtask(header_prefix);
-    cgtask(declarations);
+    cgtask_ast(declarations);
 
     file = source;
     codegen_task_source_prefix(file, header_name);
-    cgtask(definitions);
+    cgtask_ast(definitions);
 }

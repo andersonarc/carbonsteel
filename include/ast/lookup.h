@@ -13,8 +13,8 @@
 #define CARBONSTEEL_AST_LOOKUP_H
 
     /* includes */
-#include "parser/context.h" /* parser context */
-#include "mparser.h" /* parser */
+#include "language/context.h"  /* parser context */
+#include "language/parser.h" /* parser */
 
     /* functions */
 /**
@@ -28,7 +28,7 @@
  * 
  * @return Type of the token, or IDENTIFIER
  */
-mptoken_kind_t ast_lex_token(se_context* context, MPSTYPE* yylval, char* token);
+myytoken_kind_t ast_lex_token(se_context* context, MYYSTYPE* yylval, char* token);
 
 /**
  * Iterates the context stack to
@@ -41,7 +41,7 @@ mptoken_kind_t ast_lex_token(se_context* context, MPSTYPE* yylval, char* token);
  * 
  * @return Token kind, or -1 if not found
  */
-mptoken_kind_t context_lex_token(se_context* context, MPSTYPE* yylval, char* token);
+myytoken_kind_t context_lex_token(se_context* context, MYYSTYPE* yylval, char* token);
 
 
 #endif /* CARBONSTEEL_AST_LOOKUP_H */

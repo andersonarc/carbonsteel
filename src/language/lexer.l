@@ -1,15 +1,15 @@
 /**
- * @file mlexer.l
+ * @file lexer.l
  * @author andersonarc (e.andersonarc@gmail.com)
  * @author jutta@pobox.com
- * @version 0.2
+ * @version 0.3
  * @date 2021-07-22
  * 
  * @copyright This code was taken from http://www.quut.com/c/ANSI-C-grammar-l.html
  *				and heavily modified by me, but it stays under original license
  *              (unspecified, but "free for usage with or without attribution")
  *
- *  Lexical analyzer rules for Flex
+ *  Main lexical analyzer rules for Flex
  */
 
     /* numbers and characters */
@@ -42,9 +42,9 @@ WS     [ \t\v\f]
 %{
 
         /* includes */
+    #include "language/parser.h" /* parser */
     #include "ast/root.h"    /* syntax tree */
     #include "ast/lookup.h"  /* ast lookup */
-    #include "mparser.h"     /* parser */
     #include "misc/memory.h" /* memory copying */
 
         /* functions */
@@ -65,17 +65,16 @@ WS     [ \t\v\f]
     * @return The character constant
     */
     char parse_character_constant(char* value);
-
-    #define YYSTYPE MPSTYPE
-	#define YYLTYPE MPLTYPE
-	#define YY_DECL int mplex(MPSTYPE* yylval_param, MPLTYPE* yylloc_param, void* yyscanner, se_context* context)
     
+    #define YYSTYPE MYYSTYPE
+    #define YYLTYPE MYYLTYPE
+    #define YY_DECL int myylex(MYYSTYPE* yylval_param, MYYLTYPE* yylloc_param, void* yyscanner, se_context* context)
 %}
 
-%option prefix="mp"
+%option prefix="myy"
 %option reentrant bison-bridge bison-locations
 %option warn nodefault
-%option outfile="mlexer.c" header-file="mlexer.h"
+%option outfile="main_lexer.c" header-file="main_lexer.h"
 
 %%
 

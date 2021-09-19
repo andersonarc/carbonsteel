@@ -12,7 +12,7 @@
 
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h" /* allocation */
-#include "mparser.h" /* parser */
+#include "language/parser.h" /* parser */
 
 
     /* global variables */

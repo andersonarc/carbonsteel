@@ -10,8 +10,8 @@
 #include "ast/root.h" /* ast */
 #include "codegen/codegen.h" /* code generation */
 #include "misc/memory.h" /* memory allocation */
-#include "mparser.h" /* parser */
-#include "parser/mlexerw.h" /* lexer */
+#include "language/parser.h" /* parser */
+#include "language/lexer.h" /* lexer */
 
     /* functions */
 /**
@@ -44,10 +44,10 @@ int main(int argc, const char* argv[]) {
             continue;
         }
         yyscan_t scanner;
-        if (mplex_init(&scanner) != 0) {
+        if (myylex_init(&scanner) != 0) {
             logfe("unable to initizize the yacc scanner");
         }
-        mpset_in(input, scanner);
+        myyset_in(input, scanner);
 
         /* set output */
         size_t input_name_length = strlen(argv[i]);
@@ -73,7 +73,7 @@ int main(int argc, const char* argv[]) {
 
         /* parse */
         se_context* context = context_new();
-        if (mpparse(scanner, context) != 0) {
+        if (myyparse(scanner, context) != 0) {
             printf("Parsing file %s failed", argv[i]);
             continue;
         }

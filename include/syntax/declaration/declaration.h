@@ -26,7 +26,7 @@
     /* includes */
 #include "syntax/expression/primitive.h" /* primitive expressions */
 #include "syntax/predeclaration.h" /* predeclarations */
-#include "parser/context.h" /* parser context */
+#include "language/context.h" /* parser context */
 #include "ast/type.h" /* lexical type */
 
     /* typedefs */

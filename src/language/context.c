@@ -7,7 +7,7 @@
  *  Parser context function implementations
  */
     /* includes */
-#include "parser/context.h" /* this */
+#include "language/context.h" /* this */
 
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h" /* memory allocation */

@@ -9,16 +9,16 @@ flex = find_program('flex')
 bison = find_program('bison')
 
 # generated sources and headers
-mlexer = custom_target('mlexer', 
+main_lexer = custom_target('main_lexer', 
     build_by_default: true,
-    input: 'src/parser/mlexer.l', 
-    output: ['mlexer.c', 'mlexer.h'],
+    input: 'src/language/lexer.l', 
+    output: ['main_lexer.c', 'main_lexer.h'],
     command: [flex, '@INPUT@'])
-mparser = custom_target('mparser', 
+main_parser = custom_target('main_parser', 
     build_by_default: true,
-    input: 'src/parser/mparser.y', 
-    output: ['mparser.c', 'mparser.h'],
-    command: [bison, '--defines=mparser.h', '-o', 'mparser.c', '@INPUT@'])
+    input: 'src/language/parser.y', 
+    output: ['main_parser.c', 'main_parser.h'],
+    command: [bison, '--defines=main_parser.h', '-o', 'main_parser.c', '@INPUT@'])
 
 # c compiler arguments
 c_args = ['-Wno-unused-function']
@@ -27,17 +27,19 @@ c_args = ['-Wno-unused-function']
 math = meson.get_compiler('c').find_library('m', 
     required: false)
 ctool = dependency('ctool', 
-    fallback: ['ctool', 'libctool_dep'])
+    fallback: ['ctool', 'libctool_dep'],
+    default_options: 'default_library=static')
 
 # prepare build files
 src = files('src/main.c', 
             'src/ast/lookup.c',
             'src/ast/root.c', 
+            'src/ast/search.c', 
             'src/ast/type.c', 
             'src/codegen/codegen.c',
             'src/misc/convert.c',
             'src/misc/generic.c', 
-            'src/parser/context.c', 
+            'src/language/context.c', 
             'src/syntax/declaration/declaration.c',
             'src/syntax/expression/binary.c', 
             'src/syntax/expression/operator.c',
@@ -45,7 +47,7 @@ src = files('src/main.c',
 include = include_directories('include')
 
 # compile executable
-executable('carbonsteel', [src, mparser, mlexer],
+executable('carbonsteel', [src, main_parser, main_lexer],
     include_directories: include,
     dependencies: [ctool, math],
     c_args: c_args)

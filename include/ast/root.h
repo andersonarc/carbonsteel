@@ -19,12 +19,9 @@
 #define CARBONSTEEL_AST_ROOT_H
 
     /* includes */
-#define _GNU_SOURCE
-#include <search.h> /* hash table search */
-#undef  _GNU_SOURCE
-
 #include "misc/list.h" /* list utilities */
 #include "syntax/predeclaration.h" /* predeclarations */
+#include "ast/search.h" /* hash table search */
 
     /* typedefs */
 /**

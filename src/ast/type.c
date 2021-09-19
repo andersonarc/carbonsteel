@@ -17,7 +17,7 @@
 #include "ast/root.h" /* primitive types */
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "syntax/expression/unary.h" /* unary expressions */
-#include "mparser.h" /* parser */
+#include "language/parser.h" /* parser */
 
     /* functions */
 /**

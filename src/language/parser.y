@@ -1,15 +1,15 @@
 /**
- * @file mparser.y
+ * @file parser.y
  * @author andersonarc (e.andersonarc@gmail.com)
  * @author jutta@pobox.com
- * @version 0.2
+ * @version 0.3
  * @date 2021-07-22
  * 
  * @copyright This code was taken from http://www.quut.com/c/ANSI-C-grammar-y.html
  *				and heavily modified by me, but it stays under original license
  *              (unspecified, but "free for usage with or without attribution")
  *
- *  Grammar parser rules for the Bison parser generator
+ *  Main parser grammar rules for Bison
  */
 
 
@@ -37,7 +37,7 @@
 	* @param[in] context Current compiler context
 	* @param[in] message The error message
 	*/
-	void mperror(MPLTYPE* location, void* scanner, se_context* context, const char* message);
+	void myyerror(MYYLTYPE* location, void* scanner, se_context* context, const char* message);
 }
 
 %{	
@@ -46,11 +46,11 @@
 		/* includes */
 	#include <ctype.h> /* number checking */
 
-	#include "parser/context.h" /* parser context */
+	#include "language/context.h" /* parser context */
+	#include "language/parser.h" /* parser header */
 	#include "misc/union.h" /* union initialization */
-	#include "mparser.h" /* parser header */
 
-	int mplex(MPSTYPE* yylval_param, MPLTYPE* yylloc_param, void* yyscanner, se_context* context);
+	int myylex(MYYSTYPE* yylval_param, MYYLTYPE* yylloc_param, void* yyscanner, se_context* context);
 %}
 
 
@@ -63,7 +63,7 @@
 %param {se_context* context} /* track the context as a parameter */
 
 %define api.token.prefix {TOKEN_} /* add a token prefix to avoid collisions */
-%define api.prefix {mp}			  /* add an api prefix to support multiple parsers */
+%define api.prefix {myy}	      /* add an api prefix to support multiple parsers */
 %define api.value.type union 	  /* use a union type */
 
 %define parse.error custom  /* use custom error handling */
@@ -1140,7 +1140,7 @@ jump_statement
  * @param[in] context Current compiler context
  * @param[in] message The error message
  */
-void yyerror(MPLTYPE* location, void* scanner, se_context* context, const char* message) {
+void yyerror(MYYLTYPE* location, void* scanner, se_context* context, const char* message) {
 	error_syntax("%s", message);
 }
 
@@ -1159,7 +1159,7 @@ char* error_format_string(int argc) {
   	}
 }
 
-void location_print (FILE *out, MPLTYPE const * const loc) {
+void location_print (FILE *out, MYYLTYPE const * const loc) {
   fprintf (out, "%d.%d", loc->first_line, loc->first_column);
 
   int end_col = 0 != loc->last_column ? loc->last_column - 1 : 0;
@@ -1182,7 +1182,7 @@ int yyreport_syntax_error(const yypcontext_t* yyctx, void* yyscanner, se_context
     argsize = ARGS_MAX;
   const char *format = error_format_string(1 + argsize + too_many_expected_tokens);
 
-  const MPLTYPE *loc = yypcontext_location (yyctx);
+  const MYYLTYPE *loc = yypcontext_location (yyctx);
   while (*format)
     // %@: location.
     if (format[0] == '%' && format[1] == '@')

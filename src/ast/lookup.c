@@ -27,7 +27,7 @@
  * 
  * @return Type of the token, or IDENTIFIER
  */
-mptoken_kind_t ast_lex_token(se_context* context, MPSTYPE* yylval, char* token) {
+myytoken_kind_t ast_lex_token(se_context* context, MYYSTYPE* yylval, char* token) {
     /**
      * Context-aware lookup
      */
@@ -66,7 +66,7 @@ mptoken_kind_t ast_lex_token(se_context* context, MPSTYPE* yylval, char* token) 
  * 
  * @return Token kind, or -1 if not found
  */
-mptoken_kind_t context_lex_token(se_context* context, MPSTYPE* yylval, char* token) {
+myytoken_kind_t context_lex_token(se_context* context, MYYSTYPE* yylval, char* token) {
     for (int i = context->stack.size - 1; i >= 0; i--) {
         se_context_level* current = &context->stack.data[i];
         switch (current->kind) {

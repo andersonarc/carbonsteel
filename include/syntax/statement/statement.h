@@ -17,7 +17,7 @@
 
     /* includes */
 #include "syntax/expression/complex.h" /* complex expression */
-#include "parser/context.h" /* parser context */
+#include "language/context.h" /* parser context */
 #include "ast/type.h" /* lexical type */
 
     /* typedefs */

@@ -115,14 +115,23 @@ void ex_postfix_type_check_invocation(ex_postfix* this) {
 
     ex_postfix_level* level = &arraylist_last(this->level_list);
 
-    expect(level->u_argument_list.size == this->type->u_function->parameter_list.size)
-        otherwise("invalid argument count for a function \"%s\", expected %zu, got %zu", 
-                            this->type->u_function->name, 
-                            this->type->u_function->parameter_list.size, 
-                            level->u_argument_list.size);
+    dc_function* function = this->type->u_function;
+    if (!function->parameters.is_c_vararg) {
+        expect(level->u_argument_list.size == function->parameters.value.size)
+            otherwise("invalid argument count for a function \"%s\", expected %zu, got %zu", 
+                                function->name, 
+                                function->parameters.value.size, 
+                                level->u_argument_list.size);
+    } else {
+        expect(level->u_argument_list.size >= function->parameters.value.size)
+            otherwise("invalid argument count for a function \"%s\", expected more than/exactly %zu, got %zu", 
+                                function->name, 
+                                function->parameters.value.size, 
+                                level->u_argument_list.size);
+    }
 
-    iterate_array(i, level->u_argument_list.size) {
-        dc_function_parameter* parameter = &this->type->u_function->parameter_list.data[i];
+    iterate_array(i, function->parameters.value.size) {
+        dc_function_parameter* parameter = &this->type->u_function->parameters.value.data[i];
         expression* argument = level->u_argument_list.data[i];
         
         expect(ast_type_can_merge(&parameter->type, argument->type))

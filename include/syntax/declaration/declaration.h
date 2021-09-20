@@ -81,12 +81,16 @@ struct dc_function_parameter {
     char* name;
     ast_type type;
 };
+struct dc_function_parameters {
+    list(dc_function_parameter) value;
+    bool is_c_vararg;
+};
 struct dc_function {
     char* name;
     bool is_extern;
     st_compound body;
     ast_type return_type;
-    list(dc_function_parameter) parameter_list;
+    dc_function_parameters parameters;
 };
 
 

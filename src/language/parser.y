@@ -136,6 +136,9 @@
 	/* special token */
 %token <void*> ANY_NAME /* should only be used by the ast_lex_token function */
 
+	/* other tokens */
+%token C_VARARG "..."
+
 
 
 
@@ -148,7 +151,8 @@
 %nterm 	<dc_function*>  function
 %nterm 	<dc_function*>  function_declaration
 %nterm 	<dc_function*>  function_definition
-%nterm 	<list(dc_function_parameter)> 		function_parameters
+%nterm 	<dc_function_parameters> 			function_parameters
+%nterm 	<dc_function_parameters> 			extern_function_parameters
 %nterm 	<arraylist(dc_function_parameter)>  function_parameter_list
 %nterm 	<dc_function_parameter>			  	function_parameter
 
@@ -312,11 +316,11 @@ function_definition
 		{	
 			context_enter(context, SCTX_FUNCTION); 
 
-			iterate_array(i, $function_parameters.size) {
+			iterate_array(i, $function_parameters.value.size) {
 				ast_local_declaration dc = {
 					.kind = TOKEN_FUNCTION_PARAMETER_NAME,
-					.name = $function_parameters.data[i].name,
-					.u_function_parameter = &$function_parameters.data[i]
+					.name = $function_parameters.value.data[i].name,
+					.u_function_parameter = &$function_parameters.value.data[i]
 				};
 
 				arl_add(ast_local_declaration, context_current(context)->u_locals, dc);
@@ -325,33 +329,55 @@ function_definition
       compound_statement
 		{
 			$$ = allocate(dc_function);
-			$$->is_extern		  =  false;
-			$$->name 			  =  $IDENTIFIER;
-			$$->return_type 	  =  $type;
-			$$->parameter_list    =  $function_parameters;
-			$$->body 			  =  $compound_statement;
+			$$->is_extern	=  false;
+			$$->name 	    =  $IDENTIFIER;
+			$$->return_type =  $type;
+			$$->parameters  =  $function_parameters;
+			$$->body 		=  $compound_statement;
 
 			context_exit(context);
 		}
 	;
 
 function_declaration
-	: EXTERN type IDENTIFIER function_parameters ';'
+	: EXTERN type IDENTIFIER extern_function_parameters ';'
 		{
 			$$ = allocate(dc_function);
-			$$->is_extern		  =  true;
-			$$->name 			  =  $IDENTIFIER;
-			$$->return_type 	  =  $type;
-			$$->parameter_list    =  $function_parameters;
+			$$->is_extern   =  true;
+			$$->name 	    =  $IDENTIFIER;
+			$$->return_type =  $type;
+			$$->parameters  =  $extern_function_parameters;
+		}
+	;
+
+extern_function_parameters
+	: function_parameters
+
+	| '(' function_parameter_list ',' C_VARARG ')'
+		{ 
+			li_init_from(dc_function_parameter, $$.value, $function_parameter_list);
+			$$.is_c_vararg = true;
+		}
+
+	| '(' C_VARARG ')' 				   
+		{ 
+			li_init_empty(dc_function_parameter, $$.value);
+			$$.is_c_vararg = true;
 		}
 	;
 
 function_parameters
 	: '(' function_parameter_list ')'
-		{ li_init_from(dc_function_parameter, $$, $function_parameter_list); }
+		{ 
+			li_init_from(dc_function_parameter, $$.value, $function_parameter_list);
+			$$.is_c_vararg = false;
+		}
 
 	| '(' ')' 				   
-		{ li_init_empty(dc_function_parameter, $$); }
+		{ 
+			li_init_empty(dc_function_parameter, $$.value);
+			$$.is_c_vararg = false;
+		}
 	;
 
 function_parameter_list

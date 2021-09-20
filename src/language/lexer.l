@@ -176,7 +176,7 @@ WS     [ \t\v\f]
 
 
     /* string literal */
-SPREF?\"(\\.|[^\\"\n])*\"	            { 
+{SPREF}?\"([^"\\\n]|{CHR})*\"	        { 
                                             yylval_param->TOKEN_STRING_LITERAL = copy_string(yytext);
                                             return TOKEN_STRING_LITERAL;
                                         }
@@ -213,6 +213,7 @@ SPREF?\"(\\.|[^\\"\n])*\"	            {
 "!="				{ return TOKEN_OP_NOT_EQUAL;        }
 
     /* other tokens */
+"..."               { return TOKEN_C_VARARG;            }
 ";"					{ return ';'; }
 ("{"|"<%")			{ return '{'; }
 ("}"|"%>")			{ return '}'; }

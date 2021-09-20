@@ -592,9 +592,10 @@ cgd_statement() {
             break;
 
         case ST_EXPRESSION:
-            out(tabs)();
             if (st->u_st_expression.value != NULL) {
                 cg(expression_block_constructors)(&st->u_st_expression);
+
+                out(tabs)();
                 cg(expression_block)(&st->u_st_expression);
             }
             out(string)(";\n");
@@ -629,25 +630,38 @@ cgd_st(compound) {
 }
 
 
+    /** FUNCTION PARAMETERS **/
+
+cgd(function_parameters, dc_function_parameters* parameters) {
+    out(char)('(');
+    if (!arraylist_is_empty(parameters->value)) {
+        index_t last = parameters->value.size - 1;
+
+        iterate_array(i, last) {
+            cg(type)(&parameters->value.data[i].type);
+            out(format)(" %s, ", parameters->value.data[i].name);
+        }
+
+        cg(type)(&parameters->value.data[last].type);
+        out(format)(" %s", parameters->value.data[last].name);
+    }
+    if (parameters->is_c_vararg) {
+        out(string)(", ...");
+    }
+    out(char)(')');
+}
+
+
     /** FUNCTION DECLARATION **/
 
 cgd(function_declaration, dc_function* dc) {
     cg(type)(&dc->return_type);
 
-    out(format)(" %s(", dc->name);
-    if (!arraylist_is_empty(dc->parameter_list)) {
-        index_t last = dc->parameter_list.size - 1;
+    out(char)(' ');
+    out(string)(dc->name);
+    cg(function_parameters)(&dc->parameters);
 
-        iterate_array(i, last) {
-            cg(type)(&dc->parameter_list.data[i].type);
-            out(format)(" %s, ", dc->parameter_list.data[i].name);
-        }
-
-        cg(type)(&dc->parameter_list.data[last].type);
-        out(format)(" %s", dc->parameter_list.data[last].name);
-    }
-
-    out(string)(");\n\n");
+    out(string)(";\n\n");
 }
 
     /** FUNCTION **/
@@ -660,19 +674,10 @@ cgd_dc(function) {
 
     cg(type)(&dc->return_type);
 
-    out(format)(" %s(", dc->name);
-    if (!arraylist_is_empty(dc->parameter_list)) {
-        index_t last = dc->parameter_list.size - 1;
+    out(char)(' ');
+    out(string)(dc->name);
+    cg(function_parameters)(&dc->parameters);
 
-        iterate_array(i, last) {
-            cg(type)(&dc->parameter_list.data[i].type);
-            out(format)(" %s, ", dc->parameter_list.data[i].name);
-        }
-
-        cg(type)(&dc->parameter_list.data[last].type);
-        out(format)(" %s", dc->parameter_list.data[last].name);
-    }
-    out(string)(") ");
     cg(st_compound)(&dc->body);
     out(char)('\n');
 }
@@ -704,7 +709,6 @@ cgtask_declare(header_prefix) {
     out(string)("#include <stdint.h>\n");
     out(string)("#include <stdbool.h>\n");
     out(string)("#include <stdlib.h>\n");
-    out(string)("#include <stdio.h>\n");
     out(string)("/* Prefix end */\n\n");
 }
 

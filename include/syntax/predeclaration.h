@@ -91,6 +91,7 @@ d_struct(dc_structure);
 
     /* function */
 d_struct(dc_function);
+    d_struct(dc_function_parameters);
     dla_struct(dc_function_parameter);
 
     /* import */

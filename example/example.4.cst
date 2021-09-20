@@ -13,7 +13,7 @@ type buffer_t {
     byte[] data;
 };
 
-extern int puts(byte[] string);
+extern int printf(byte[] string, ...);
 
 void bwrite(buffer_t* buffer) {
     buffer->state = buffer_state_t.WRITE;
@@ -34,7 +34,7 @@ void bread(buffer_t* buffer) {
 
     long index = 0;
     while (index < buffer->size) {
-        puts(byte[2]('0' + (buffer->data[index] % 10), 0));
+        printf("%d: %s\n", index, byte[2]('0' + (buffer->data[index] % 10), 0));
         index++;
     }
 

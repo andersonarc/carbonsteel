@@ -653,6 +653,11 @@ cgd(function_declaration, dc_function* dc) {
     /** FUNCTION **/
 
 cgd_dc(function) {
+    /* handle function declarations */
+    if (dc->is_extern) {
+        return;
+    }
+
     cg(type)(&dc->return_type);
 
     out(format)(" %s(", dc->name);

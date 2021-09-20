@@ -85,6 +85,7 @@ WS     [ \t\v\f]
 
     /* keywords */
 "import"                { return TOKEN_IMPORT;   }
+"extern"                { return TOKEN_EXTERN;   }
 "alias"                 { return TOKEN_ALIAS;    }
 "enum"					{ return TOKEN_ENUM;     }
 "type"					{ return TOKEN_TYPE;     }
@@ -151,7 +152,7 @@ WS     [ \t\v\f]
                                         return TOKEN_FLOAT_CONSTANT; 
                                     }
 
-{DEC}+"."{EXP}?{FSUFF}?			    { 
+{DEC}+"."{DEC}*{EXP}?{FSUFF}?		{ 
                                         yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
                                         return TOKEN_FLOAT_CONSTANT; 
                                     }
@@ -168,14 +169,14 @@ WS     [ \t\v\f]
                                             return TOKEN_FLOAT_CONSTANT;
                                         }
 
-{HPREF}{HEX}+"."{HEXP}{FSUFF}?			{ 
+{HPREF}{HEX}+"."{HEX}*{HEXP}{FSUFF}?	{ 
                                             yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
                                             return TOKEN_FLOAT_CONSTANT;
                                         }
 
 
     /* string literal */
-({SPREF}?\"([^"\\\n]|{CHR})*\"{WS}*)+	{ 
+SPREF?\"(\\.|[^\\"\n])*\"	            { 
                                             yylval_param->TOKEN_STRING_LITERAL = copy_string(yytext);
                                             return TOKEN_STRING_LITERAL;
                                         }

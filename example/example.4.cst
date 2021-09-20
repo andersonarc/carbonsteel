@@ -13,13 +13,13 @@ type buffer_t {
     byte[] data;
 };
 
-int puts(byte[] string) {}
+extern int puts(byte[] string);
 
 void bwrite(buffer_t* buffer) {
     buffer->state = buffer_state_t.WRITE;
     
     long index = 0;
-    float coefficient = 3.14;
+    float coefficient = .1e2;
     while (index < buffer->size) {
         buffer->data[index] = index + coefficient;
         index++;

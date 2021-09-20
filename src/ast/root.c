@@ -18,6 +18,10 @@
     /* global variables */
 list(ast_type_primitive) primitive_list;
 
+//--todo - native parser. support ONLY functions.
+//--todo - Serialization for the AST. Serialize pointers into a PtrTable and allocated them when deserializing
+
+
     /* defines */
 /**
  * Helper macro for initializing primitive types

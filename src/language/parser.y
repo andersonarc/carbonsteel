@@ -13,9 +13,6 @@
  */
 
 
-
-
-
 %code requires {
 	/* header code */
 
@@ -33,9 +30,9 @@
 	* Throws a parser error
 	*
 	* @param[in] location Location of the error
-	* @param[in] scanner The token scanner
-	* @param[in] context Current compiler context
-	* @param[in] message The error message
+	* @param[in] scanner  The token scanner
+	* @param[in] context  Current compiler context
+	* @param[in] message  The error message
 	*/
 	void myyerror(MYYLTYPE* location, void* scanner, se_context* context, const char* message);
 }
@@ -54,10 +51,6 @@
 %}
 
 
-
-
-
-
 	/* bison options */
 %param {void* yyscanner}  /* pass the yyscanner parameter */
 %param {se_context* context} /* track the context as a parameter */
@@ -69,10 +62,7 @@
 %define parse.error custom  /* use custom error handling */
 %define api.pure 	full 	/* use pure parser interface */
 %define parse.lac 	full	/* accurate list of expected tokens */
-%define parse.trace
 %locations 				   	/* track token locations */
-
-
 
 
 
@@ -115,6 +105,7 @@
 
 	/* keywords */
 %token	IMPORT 		"import"
+		EXTERN		"extern"
 		ALIAS		"alias"
 		ENUM		"enum"
 		TYPE		"type"
@@ -148,15 +139,15 @@
 
 
 
-
-
 		/* rule types */
 
 	/* declaration */
 %nterm 	<declaration>  declaration
 
 	/* function */
+%nterm 	<dc_function*>  function
 %nterm 	<dc_function*>  function_declaration
+%nterm 	<dc_function*>  function_definition
 %nterm 	<list(dc_function_parameter)> 		function_parameters
 %nterm 	<arraylist(dc_function_parameter)>  function_parameter_list
 %nterm 	<dc_function_parameter>			  	function_parameter
@@ -296,10 +287,10 @@ declaration
 												$alias_declaration->name 
 										); }
 
-	| function_declaration  			{ 	new_type_declaration(&context->ast, &$$, 			
+	| function  						{ 	new_type_declaration(&context->ast, &$$, 			
 												DC_FUNCTION, TOKEN_FUNCTION_NAME, 
-												$function_declaration, 	
-												$function_declaration->name
+												$function, 	
+												$function->name
 										); }
 
     | variable_declaration_statement	{ 	new_type_declaration(&context->ast, &$$, 			
@@ -311,7 +302,12 @@ declaration
 	| import_declaration				{	new_declaration(&context->ast, &$$, DC_IMPORT, $import_declaration); }
 	;
 
-function_declaration
+function
+	: function_declaration
+	| function_definition
+	;
+
+function_definition
 	: type IDENTIFIER function_parameters
 		{	
 			context_enter(context, SCTX_FUNCTION); 
@@ -329,12 +325,24 @@ function_declaration
       compound_statement
 		{
 			$$ = allocate(dc_function);
+			$$->is_extern		  =  false;
 			$$->name 			  =  $IDENTIFIER;
 			$$->return_type 	  =  $type;
 			$$->parameter_list    =  $function_parameters;
 			$$->body 			  =  $compound_statement;
 
 			context_exit(context);
+		}
+	;
+
+function_declaration
+	: EXTERN type IDENTIFIER function_parameters ';'
+		{
+			$$ = allocate(dc_function);
+			$$->is_extern		  =  true;
+			$$->name 			  =  $IDENTIFIER;
+			$$->return_type 	  =  $type;
+			$$->parameter_list    =  $function_parameters;
 		}
 	;
 

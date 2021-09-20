@@ -83,6 +83,7 @@ struct dc_function_parameter {
 };
 struct dc_function {
     char* name;
+    bool is_extern;
     st_compound body;
     ast_type return_type;
     list(dc_function_parameter) parameter_list;

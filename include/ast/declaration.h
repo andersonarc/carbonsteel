@@ -13,7 +13,8 @@
 
     /* includes */
 #include "syntax/predeclaration.h" /* predeclarations */
-#include "ast/type.h" /* lexical type */
+#include "ast/type/primitive.h"    /* primitive types */
+#include "ast/type/type.h"         /* lexical type */
 
     /* typedefs */
 /**
@@ -21,7 +22,7 @@
  * hash table
  * 
  * Global declarations are stored and
- * looked up in the global hash table
+ * looked up in the global hash table.
  */
 typedef struct ast_declaration {
     int kind;
@@ -43,7 +44,7 @@ typedef struct ast_declaration {
  * context lookup
  * 
  * Local declarations are stored in
- * parser context and are looked up by name
+ * parser context and are looked up by name.
  */
 typedef struct ast_local_declaration {
     int kind;

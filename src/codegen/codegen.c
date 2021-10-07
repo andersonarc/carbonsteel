@@ -123,8 +123,7 @@ cgd_ex(constructor) {
 
                     out(string)("};\n");
                 }
-                
-                break;
+            break;
 
             case AST_TYPE_PRIMITIVE:
                 if (ex->is_new) {
@@ -140,16 +139,7 @@ cgd_ex(constructor) {
 
                 cg(expression)(ex->argument_list.data[0]);
                 out(string)(";\n");
-                
-                break;
-
-            case AST_TYPE_ENUM:
-                error_syntax("cannot construct an enum type");
-                break;
-
-            case AST_TYPE_FUNCTION:
-                error_syntax("cannot construct a function type");
-                break;
+            break;
 
             otherwise_error
         }
@@ -203,7 +193,7 @@ cgd_type() {
         otherwise_error
     }
     iterate_array(i, type->level_list.size) {
-        switch (type->level_list.data[i].kind) {
+        switch (type->level_list.data[i]) {
             case AT_LEVEL_POINTER:
             case AT_LEVEL_ARRAY:
                 out(char)('*');
@@ -285,7 +275,7 @@ cgd_expression_block() {
 
     /** BASIC EXPRESSION **/
 
-cgd_ex(basic) {
+cgd_ex(basic_data) {
     switch (ex->kind) {
         case EX_B_FUNCTION:
             out(string)(ex->u_function->name);
@@ -295,8 +285,8 @@ cgd_ex(basic) {
             out(string)(ex->u_variable->name);
             break;
 
-        case EX_B_EX_NUMBER:
-            cg(ex_number)(&ex->u_ex_number);
+        case EX_B_NUMBER:
+            cg(ex_number)(&ex->u_number);
             break;
 
         case EX_B_BOOLEAN:
@@ -338,8 +328,8 @@ cgd_ex(basic) {
 
     /** POSTFIX EXPRESSION **/
 
-cgd_ex(postfix) {
-    cg(ex_basic)(&ex->value);
+cgd_ex(postfix_data) {
+    cg(ex_basic_data)(&ex->value);
     iterate_array(i, ex->level_list.size) {
         ex_postfix_level level = ex->level_list.data[i];
         switch (level.kind) {
@@ -361,15 +351,15 @@ cgd_ex(postfix) {
 
             case EX_PL_INVOCATION:
                 out(char)('(');
-                if (!arraylist_is_empty(level.u_argument_list)) {
-                    index_t last = level.u_argument_list.size - 1;
+                if (!arraylist_is_empty(level.u_invocation)) {
+                    index_t last = level.u_invocation.size - 1;
 
                     iterate_array(j, last) {
-                        cg(expression)(level.u_argument_list.data[j]);
+                        cg(expression)(level.u_invocation.data[j]);
                         out(string)(", ");
                     }
 
-                    cg(expression)(level.u_argument_list.data[last]);
+                    cg(expression)(level.u_invocation.data[last]);
                 }
                 out(char)(')');
                 break;
@@ -396,7 +386,7 @@ cgd_ex(postfix) {
 
     /** UNARY EXPRESSION **/
 
-cgd_ex(unary) {
+cgd_ex(unary_data) {
     switch (ex->kind) {
         case EX_U_INCREMENT:
             out(string)("++");
@@ -422,19 +412,19 @@ cgd_ex(unary) {
     iterate_array(i, ex->op_list.size) {
         out(char)(op_unary_chars[ex->op_list.data[i]]);
     }
-    cg(ex_postfix)(&ex->value);
+    cg(ex_postfix_data)(&ex->value);
 }
 
 
     /** CAST EXPRESSION **/
 
-cgd_ex(cast) {
+cgd_ex(cast_data) {
     iterate_array(i, ex->cast_list.size) {
         out(char)('(');
         cg(type)(&ex->cast_list.data[i]);
         out(string)(") ");
     }
-    cg(ex_unary)(&ex->value);
+    cg(ex_unary_data)(&ex->value);
 }
 
 
@@ -442,7 +432,7 @@ cgd_ex(cast) {
 
 cgd_ex(binary_inline) {
     if (!ex->has_operation) {
-        cg(ex_cast)(&ex->value);
+        cg(ex_cast_data)(&ex->value);
     } else {
         cg(ex_binary_inline)(ex->a);
         out(char)(' ');
@@ -471,7 +461,7 @@ cgd_ex(condition) {
 
 cgd_expression() {
     if (ex->has_assignment) {
-        cg(ex_unary)(&ex->u_assignment.assignee);
+        cg(ex_unary_data)(&ex->u_assignment.assignee.data);
         out(format)(" %s ", op_assign_strings[ex->u_assignment.operator]); 
         cg(expression)(ex->u_assignment.value);
     } else {

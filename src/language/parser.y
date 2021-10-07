@@ -44,8 +44,10 @@
 	#include <ctype.h> /* number checking */
 
 	#include "language/context.h" /* parser context */
-	#include "language/parser.h" /* parser header */
-	#include "misc/union.h" /* union initialization */
+	#include "language/parser.h"  /* parser header */
+	#include "misc/union.h" 	  /* union initialization */
+	#include "ast/type/check.h"	  /* type checking */
+	#include "ast/type/resolve.h" /* default type values */
 
 	int myylex(MYYSTYPE* yylval_param, MYYLTYPE* yylloc_param, void* yyscanner, se_context* context);
 %}
@@ -238,7 +240,7 @@
 %nterm  <ast_type>  type_
 
 	/* statement */
-%nterm 	 <statement*>  statement
+%nterm 	<statement*>  statement
 
 	/* compound statement */
 %nterm 	<list(st_compound_item)>  compound_statement
@@ -273,37 +275,48 @@ declaration_list
 	;
 
 declaration
-	: structure_declaration 			{ 	new_type_declaration(&context->ast, &$$, 
-												DC_STRUCTURE, TOKEN_STRUCTURE_NAME, 
-												$structure_declaration, 
-												$structure_declaration->name 
-										); }
+	: structure_declaration 			
+		{ 	
+			ast_declare(&context->ast, 
+				DC_STRUCTURE, TOKEN_STRUCTURE_NAME, 
+				$structure_declaration->name,
+				$structure_declaration); 
+		}
 
-    | enum_declaration					{ 	new_type_declaration(&context->ast, &$$, 
-												DC_ENUM, TOKEN_ENUM_NAME, 
-												$enum_declaration, 
-												$enum_declaration->name 
-										); }
+    | enum_declaration					
+		{ 	
+			ast_declare(&context->ast,
+				DC_ENUM, TOKEN_ENUM_NAME, 
+				$enum_declaration->name,
+				$enum_declaration); 
+		}
 
-	| alias_declaration					{ 	new_type_declaration(&context->ast, &$$, 
-												DC_ALIAS, TOKEN_ALIAS_NAME, 
-												$alias_declaration, 
-												$alias_declaration->name 
-										); }
+	| alias_declaration	
+		{
+			ast_declare(&context->ast,
+				DC_ALIAS, TOKEN_ALIAS_NAME, 
+				$alias_declaration->name,
+				$alias_declaration); 
+		}
 
-	| function  						{ 	new_type_declaration(&context->ast, &$$, 			
-												DC_FUNCTION, TOKEN_FUNCTION_NAME, 
-												$function, 	
-												$function->name
-										); }
+	| function
+		{ 	
+			ast_declare(&context->ast, 			
+				DC_FUNCTION, TOKEN_FUNCTION_NAME, 
+				$function->name,
+				$function); 
+		}
 
-    | variable_declaration_statement	{ 	new_type_declaration(&context->ast, &$$, 			
-												DC_ST_VARIABLE, TOKEN_VARIABLE_NAME, 
-												$variable_declaration_statement, 	
-												$variable_declaration_statement->name
-										); }
+    | variable_declaration_statement	
+		{ 	
+			ast_declare(&context->ast,			
+				DC_ST_VARIABLE, TOKEN_VARIABLE_NAME, 
+				$variable_declaration_statement->name,
+				$variable_declaration_statement); 
+		}
 
-	| import_declaration				{	new_declaration(&context->ast, &$$, DC_IMPORT, $import_declaration); }
+	| import_declaration
+		{ ast_add_declaration(&context->ast, DC_IMPORT, $import_declaration); }
 	;
 
 function
@@ -611,162 +624,63 @@ enum_member_expression
 	;
 
 basic_expression
-	: FUNCTION_NAME 		
-		{ 
-			u_init($$, EX_B_FUNCTION).u_function = $FUNCTION_NAME;
-			$$.type = ast_type_new(AST_TYPE_FUNCTION, $$.u_function);
-		}
+	: VARIABLE_NAME
+		{ inherit_extern(basic, variable, $$, $VARIABLE_NAME); }
+		
+	| FUNCTION_NAME
+		{ inherit_extern(basic, function, $$, $FUNCTION_NAME); }
 
-	| VARIABLE_NAME
-		{ 
-			u_init($$, EX_B_VARIABLE).u_variable = $VARIABLE_NAME;
-			$$.type = ast_type_clone($$.u_variable->type);
-		}
-	
-	| FUNCTION_PARAMETER_NAME 
-		{ 
-			u_init($$, EX_B_FUNCTION_PARAMETER).u_function_parameter = $FUNCTION_PARAMETER_NAME;
-			$$.type = ast_type_clone($$.u_function_parameter->type); 
-		}
+	| FUNCTION_PARAMETER_NAME
+		{ inherit_extern(basic, function_parameter, $$, $FUNCTION_PARAMETER_NAME); }
 
-	| boolean_expression 	
-		{ 
-			u_init($$, EX_B_BOOLEAN).u_boolean = $boolean_expression;
-			$$.type = ast_type_of_boolean();
-		}
+	| boolean_expression
+		{ inherit_extern(basic, boolean, $$, $boolean_expression); }
 
-	| number_expression		
-		{ 
-			u_init($$, EX_B_EX_NUMBER).u_ex_number = $number_expression;
-			$$.type = ast_type_of_ex_number($$.u_ex_number.kind);
-		}
+	| number_expression
+		{ inherit_extern(basic, number, $$, $number_expression); }
 
 	| CHAR_CONSTANT
-		{
-			u_init($$, EX_B_CHARACTER).u_character = $CHAR_CONSTANT;
-			$$.type = ast_type_of_character();
-		}
-
-	| STRING_LITERAL	    
-		{ 
-			u_init($$, EX_B_STRING).u_string = $STRING_LITERAL;
-			$$.type = ast_type_of_string();
-		}
+		{ inherit_extern(basic, character, $$, $CHAR_CONSTANT); }
+		
+	| STRING_LITERAL	
+		{ inherit_extern(basic, string, $$, $STRING_LITERAL); }
 
 	| constructor_expression
-		{ 
-			u_init($$, EX_B_EX_CONSTRUCTOR).u_ex_constructor = $constructor_expression;
-			$$.type = ast_type_of_ex_constructor($$.u_ex_constructor);
-		}
+		{ inherit_extern(basic, ex_constructor, $$, $constructor_expression);}
 
 	| enum_member_expression
-		{ 
-			u_init($$, EX_B_ENUM_MEMBER).u_enum_member = $enum_member_expression;
-			$$.type = ast_type_new(AST_TYPE_ENUM, $$.u_enum_member->parent);   
-		}
+		{ inherit_extern(basic, enum_member, $$, $enum_member_expression); }
 
-	| '(' expression ')'		
-		{ 
-			u_init($$, EX_B_EXPRESSION).u_expression = $expression;
-			$$.type = $$.u_expression->type;
-		}
+	| '(' expression ')'
+		{ inherit_extern(basic, expression, $$, $expression); }
 	;
 
 postfix_expression_recursive
 	: basic_expression
-		{
-			$$.value = $basic_expression;
-			$$.type = $basic_expression.type;
-			arl_init_empty(ex_postfix_level, $$.level_list);
-		}
+		{ inherit_expression(postfix, basic, $$, $basic_expression); }
 
 	| postfix_expression_recursive[value] '[' expression ']'
-		{
-			$$ = $value;
-			ex_postfix_level level = {
-				.kind = EX_PL_INDEX,
-				.u_index = $expression
-			};
-
-			arl_add(ex_postfix_level, $$.level_list, level);
-			ex_postfix_type_check_index(&$$);
-			arl_pop(ast_type_level, $$.type->level_list);
-		}
+		{ inherit_self_with(postfix, index, $$, $value, $expression); }
 
 	| postfix_expression_recursive[value] invocation_expression
-		{
-			$$ = $value;
-			ex_postfix_level level = {
-				.kind = EX_PL_INVOCATION,
-				.u_argument_list = $invocation_expression
-			};
-
-			arl_add(ex_postfix_level, $$.level_list, level);
-			ex_postfix_type_check_invocation(&$$);
-			ast_type_clone_to($$.type, $$.type->u_function->return_type);
-		}
+		{ inherit_self_with(postfix, invocation, $$, $value, $invocation_expression); }
 
 	| postfix_expression_recursive[value] '.' IDENTIFIER
-		{
-			$$ = $value;
-			ex_postfix_level level = {
-				.kind = EX_PL_PROPERTY
-			};
-
-			ex_postfix_type_precheck_property(&$$);
-			arl_find_by_name(
-				in_list(dc_structure_member, $$.type->u_structure->member_list),
-				find_and_assign($IDENTIFIER, level.u_property),
-				on_error("structure \"%s\" has no member \"%s\"", $$.type->u_structure->name, $IDENTIFIER)
-			)
-			
-			arl_add(ex_postfix_level, $$.level_list, level);
-			ast_type_clone_to($$.type, level.u_property->type);
-		}
+		{ inherit_self_with_before(postfix, property, $$, $value, dc_structure_member*, $IDENTIFIER); }
 	
 	| postfix_expression_recursive[value] OP_POINTER_PROPERTY IDENTIFIER
-		{
-			$$ = $value;
-			ex_postfix_level level = {
-				.kind = EX_PL_POINTER_PROPERTY
-			};
-
-			ex_postfix_type_precheck_pointer_property(&$$);
-			arl_find_by_name(
-				in_list(dc_structure_member, $$.type->u_structure->member_list),
-				find_and_assign($IDENTIFIER, level.u_property),
-				on_error("structure pointer \"%s\" has no member \"%s\"", $$.type->u_structure->name, $IDENTIFIER)
-			)
-			
-			arl_add(ex_postfix_level, $$.level_list, level);
-			ast_type_clone_to($$.type, level.u_property->type);
-		}
+		{ inherit_self_with_before(postfix, pointer_property, $$, $value, dc_structure_member*, $IDENTIFIER); }
 	;
 
 postfix_expression
 	: postfix_expression_recursive
-		{
-			$$ = $postfix_expression_recursive;
-			$$.kind = EX_P_PLAIN;
-		}
+		{ inherit_self(postfix, plain, $$, $postfix_expression_recursive); }
 
 	| postfix_expression_recursive OP_INCREMENT
-		{
-			$$ = $postfix_expression_recursive;
-			$$.kind = EX_P_INCREMENT;
-
-			expect(ast_type_is_number($$.type))
-                otherwise("cannot increment a non-number of type \"%s\"", ast_type_to_string($$.type));
-		}
+		{ inherit_self(postfix, increment, $$, $postfix_expression_recursive); }
 
 	| postfix_expression_recursive OP_DECREMENT
-		{
-			$$ = $postfix_expression_recursive;
-			$$.kind = EX_P_DECREMENT;
-
-			expect(ast_type_is_number($$.type))
-                otherwise("cannot decrement a non-number of type \"%s\"", ast_type_to_string($$.type));
-		}
+		{ inherit_self(postfix, decrement, $$, $postfix_expression_recursive); }
 	;
 
 invocation_expression
@@ -786,115 +700,52 @@ invocation_argument_list
 
 unary_expression_recursive
 	: postfix_expression
-		{
-			$$.value = $postfix_expression;
-			$$.type = $$.value.type;
-			arl_init_empty(op_unary, $$.op_list);
-		}
+		{ inherit_expression(unary, postfix, $$, $postfix_expression); }
 
 	| '&' unary_expression_recursive[value]
-		{
-			$$ = $value;
-			arl_add(op_unary, $$.op_list, OP_U_REFERENCE);
-
-			ast_type_level level = { 
-				.kind = AT_LEVEL_POINTER 
-			};
-            arl_add(ast_type_level, $$.type->level_list, level);
-		}
+		{ inherit_self(unary, reference, $$, $value); }
 
 	| '*' unary_expression_recursive[value]
-		{
-			$$ = $value;
-			arl_add(op_unary, $$.op_list, OP_U_DEREFERENCE);
-
-			expect(ast_type_last_level_is($$.type, AT_LEVEL_POINTER))
-            	otherwise("cannot dereference a non-pointer of type %s", ast_type_to_string($$.type));
-			arl_pop(ast_type_level, $$.type->level_list);
-		}
+		{ inherit_self(unary, dereference, $$, $value); }
 
 	| '~' unary_expression_recursive[value]
-		{
-			$$ = $value;
-			arl_add(op_unary, $$.op_list, OP_U_BINARY_NOT);
-
-			expect(ast_type_is_number($$.type))
-                otherwise("cannot apply binary not to a non-number of type \"%s\"", ast_type_to_string($$.type));
-		}
+		{ inherit_self(unary, binary_not, $$, $value); }
 
 	| '!' unary_expression_recursive[value]
-		{
-			$$ = $value;
-			arl_add(op_unary, $$.op_list, OP_U_LOGIC_NOT);
-
-			expect(ast_type_is_boolean($$.type))
-                otherwise("cannot apply logic not to a non-boolean of type \"%s\"", ast_type_to_string($$.type));
-		}
+		{ inherit_self(unary, logic_not, $$, $value); }
 	;
 
 unary_expression
 	: unary_expression_recursive
-		{
-			$$ = $unary_expression_recursive;
-			$$.kind = EX_U_PLAIN;
-		}
+		{ inherit_self(unary, plain, $$, $unary_expression_recursive); }
 
 	| '+' unary_expression_recursive
-		{
-			$$ = $unary_expression_recursive;
-			$$.kind = EX_U_PLUS;
-		}
+		{ inherit_self(unary, plus, $$, $unary_expression_recursive); }
 
 	| '-' unary_expression_recursive
-		{
-			$$ = $unary_expression_recursive;
-			$$.kind = EX_U_MINUS;
-
-			expect(ast_type_is_number($$.type))
-                otherwise("cannot negate a non-number of type \"%s\"", ast_type_to_string($$.type));
-		}
+		{ inherit_self(unary, minus, $$, $unary_expression_recursive); }
 
 	| OP_INCREMENT unary_expression_recursive
-		{
-			$$ = $unary_expression_recursive;
-			$$.kind = EX_U_INCREMENT;
-
-			expect(ast_type_is_number($$.type))
-                otherwise("cannot increment a non-number of type \"%s\"", ast_type_to_string($$.type));
-		}
+		{ inherit_self(unary, increment, $$, $unary_expression_recursive); }
 
 	| OP_DECREMENT unary_expression_recursive
-		{
-			$$ = $unary_expression_recursive;
-			$$.kind = EX_U_DECREMENT;
-
-			expect(ast_type_is_number($$.type))
-                otherwise("cannot decrement a non-number of type \"%s\"", ast_type_to_string($$.type));
-		}
+		{ inherit_self(unary, decrement, $$, $unary_expression_recursive); }
 	;
 
 cast_expression
 	: unary_expression
-		{
-			$$.value = $unary_expression;
-			$$.type = $$.value.type;
-			arl_init_empty(ast_type, $$.cast_list);
-		}
+		{ inherit_expression(cast, unary, $$, $unary_expression); }
 
 	| cast_expression[value] AS '(' type ')'
-		{
-			$$ = $value;
-			ast_type_clone_to($$.type, $type);
-			arl_add(ast_type, $$.cast_list, $type);
-		}
+		{ inherit_self_with(cast, cast, $$, $value, $type); }
 	;
 
 binary_expression
 	: cast_expression[value]
 		{
-			$$.type = $value.type;
+			$$.type = &$value.properties->type;
 			$$.v.has_operation = false;
-			$$.v.value = $value;
+			$$.v.value = $value.data;
 		}
 
 		/* multiplication */
@@ -960,7 +811,7 @@ conditional_expression
 							ast_type_to_string($$.u_if->type),
 							ast_type_to_string($$.u_else->type));
 
-			expect(ast_type_is_boolean($$.value.type))
+			expect(ast_type_is_pp_boolean($$.value.type))
 				otherwise("conditional expression has non-boolean condition of type \"%s\"", 
 							ast_type_to_string($$.value.type));
 		}
@@ -976,25 +827,25 @@ expression
 			$$->type = $$->u_value.type;
 		}
 
-	| unary_expression assignment_operator expression[value]
+	| unary_expression[lvalue] assignment_operator[op] expression[rvalue]
 		{
 			$$ = allocate(expression);
-			$$->u_assignment.assignee = $unary_expression;
-			$$->u_assignment.operator = $assignment_operator;
-			$$->u_assignment.value = $value;
+			$$->u_assignment.assignee = $lvalue;
+			$$->u_assignment.operator = $op;
+			$$->u_assignment.value = $rvalue;
 
 			$$->has_assignment = true;
 
-			expect(($$->type = ast_type_merge_prioritized($$->u_assignment.assignee.type, $$->u_assignment.value->type)) != NULL)
+			expect(($$->type = ast_type_merge_prioritized(&$lvalue.properties->type, $rvalue->type)) != NULL)
 				otherwise("illegal assignment to type \"%s\" from type \"%s\"",
-								ast_type_to_string($$->u_assignment.assignee.type), 
-								ast_type_to_string($$->u_assignment.value->type));
+								ast_type_to_string(&$lvalue.properties->type), 
+								ast_type_to_string($rvalue->type));
 
 			if ($$->u_assignment.operator != OP_A_PLAIN) {
-				expect(ast_type_is_number($$->u_assignment.assignee.type))
+				expect(ast_type_is_pp_number(&$lvalue.properties->type))
 					otherwise("assignment operator \"%s\" can only be applied to numbers, got type \"%s\"", 
-								op_assign_strings[$$->u_assignment.operator], 
-								ast_type_to_string($$->u_assignment.assignee.type));
+								op_assign_strings[$op], 
+								ast_type_to_string(&$lvalue.properties->type));
 			}
 		}
 	;
@@ -1053,18 +904,10 @@ type_
 		{ ast_type_clone_to(&$$, $ALIAS_NAME->target); }
 
     | type '*'	   
-		{ 
-			$$ = $type;
-			ast_type_level level = { .kind = AT_LEVEL_POINTER };
-			arl_add(ast_type_level, $$.level_list, level); 
-		}
+		{ $$ = $type; ast_type_pointer_wrap(&$$); }
 
 	| type '[' ']' 
-		{ 
-			$$ = $type;
-			ast_type_level level = { .kind = AT_LEVEL_ARRAY };
-			arl_add(ast_type_level, $$.level_list, level); 
-		}
+		{ $$ = $type; ast_type_array_wrap(&$$); }
 	;
 
 

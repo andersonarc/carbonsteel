@@ -35,7 +35,7 @@ struct ex_binary_inline {
             op_binary operator;
             ex_binary_inline* b;
         };
-        ex_cast value;
+        ex_cast_data value;
     };
 };
 struct ex_binary {

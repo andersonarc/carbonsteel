@@ -1,162 +1,124 @@
 /**
  * @file unary.c
  * @author andersonarc (e.andersonarc@gmail.com)
- * @version 0.2
+ * @version 0.3
  * @date 2021-08-27
  * 
- *  Unary expression parser functions
- *  implementation file
+ *  Unary expression inheritance schemes
  */
     /* includes */
-#include "syntax/expression/unary.h" /* this */
-
-#include <string.h> /* string functions */
-
+#include "syntax/expression/unary.h" /* unary expressions */
 #include "syntax/declaration/declaration.h" /* declarations */
-#include "syntax/expression/complex.h" /* expressions */
-#include "ast/type.h" /* type functions */
+#include "syntax/statement/statement.h" /* statements */
+#include "ast/type/resolve.h" /* type initialization */
+#include "ast/type/check.h" /* type comparison */
 
-    /* functions */
-
-void ex_constructor_type_check(ex_constructor* this) {
-    /* check plain constructors */
-    if (arraylist_is_empty(this->type->level_list) && !this->is_array) {
-        /* no-enum restriction */
-        if (this->type->kind == AST_TYPE_ENUM) {
-            error_syntax("cannot construct an enum \"%s\"", ast_type_to_string(this->type))
-        }
-
-        /* no-function restriction */
-        if (this->type->kind == AST_TYPE_FUNCTION) {
-            error_syntax("cannot construct a function \"%s\"", ast_type_to_string(this->type))
-        }
-
-        /* check primitive constructor argument */
-        if (this->type->kind == AST_TYPE_PRIMITIVE) {
-            /* count check */
-            if (this->argument_list.size != 1) {
-                error_syntax("invalid argument count for \"%s\" primitive type constructor: expected 1, got %zu",
-                                ast_type_to_string(this->type), this->argument_list.size);
-            }
-
-            /* type check */
-            ast_type* type = this->argument_list.data[0]->type;
-            if (!ast_type_can_merge(this->type, type)) {
-                error_syntax("invalid argument for \"%s\" primitive type constructor: expected \"%s\", got \"%s\"",
-                                ast_type_to_string(this->type), ast_type_to_string(this->type), ast_type_to_string(type));
-            }
-        }
-
-        /* check structure constructor arguments */
-        if (this->type->kind == AST_TYPE_STRUCTURE) {
-            dc_structure* structure = this->type->u_structure;
-
-            /* check count */
-            if (structure->member_list.size != this->argument_list.size) {
-                error_syntax("invalid argument count for \"%s\" structure type constructor: expected %zu, got %zu",
-                                ast_type_to_string(this->type), structure->member_list.size, this->argument_list.size);
-            }
-
-            /* check argument types */
-            iterate_array(i, this->argument_list.size) {
-                dc_structure_member member = structure->member_list.data[i];
-                ast_type* type = this->argument_list.data[i]->type;
-
-                if (!ast_type_can_merge(type, &member.type)) {
-                    error_syntax("invalid constructor argument \"%s\": expected type \"%s\", got \"%s\"",
-                                    member.name, ast_type_to_string(&member.type), ast_type_to_string(type));
-                }
-            }
-        }
-    } else {
-        /* pointer constructor validation */
-        if (ast_type_last_level_is(this->type, AT_LEVEL_POINTER)) {
-            /* count check */
-            if (this->argument_list.size != 1) {
-                error_syntax("invalid argument count for \"%s\" pointer type constructor: expected 1, got %zu",
-                                ast_type_to_string(this->type), this->argument_list.size);
-            }
-
-            /* type check */
-            ast_type* type = this->argument_list.data[0]->type;
-            if (!ast_type_can_merge(this->type, type)) {
-                error_syntax("invalid argument for \"%s\" pointer type constructor: expected \"%s\", got \"%s\"",
-                                ast_type_to_string(this->type), ast_type_to_string(this->type), ast_type_to_string(type));
-            }
-        }
-
-        /**
-         * @todo 
-         * Array constructor check:
-         * - if not New, validate a constant expression size
-         */
-    }
-}
-
-
-void ex_postfix_type_check_index(ex_postfix* this) {
-    ex_postfix_level* level = &arraylist_last(this->level_list);
-
-    /* array restriction check */
-    if (!ast_type_last_level_is(this->type, AT_LEVEL_ARRAY)) {
-        error_syntax("expected an array for [] operation, got type \"%s\"", ast_type_to_string(this->type));
-    }
-
-    /* number restriction check */
-    if (!ast_type_is_number(level->u_index->type)) {
-        error_syntax("expected a numerical index for [] operation, got type \"%s\"", ast_type_to_string(level->u_index->type));
-    }
-}
-
-
-void ex_postfix_type_check_invocation(ex_postfix* this) {
-    expect(this->type->kind == AST_TYPE_FUNCTION)
-        otherwise("expected a function for a () operation, got \"%s\"", ast_type_to_string(this->type));
-
-    ex_postfix_level* level = &arraylist_last(this->level_list);
-
-    dc_function* function = this->type->u_function;
-    if (!function->parameters.is_c_vararg) {
-        expect(level->u_argument_list.size == function->parameters.value.size)
-            otherwise("invalid argument count for a function \"%s\", expected %zu, got %zu", 
-                                function->name, 
-                                function->parameters.value.size, 
-                                level->u_argument_list.size);
-    } else {
-        expect(level->u_argument_list.size >= function->parameters.value.size)
-            otherwise("invalid argument count for a function \"%s\", expected more than/exactly %zu, got %zu", 
-                                function->name, 
-                                function->parameters.value.size, 
-                                level->u_argument_list.size);
-    }
-
-    iterate_array(i, function->parameters.value.size) {
-        dc_function_parameter* parameter = &this->type->u_function->parameters.value.data[i];
-        expression* argument = level->u_argument_list.data[i];
+        /* inheritance */
         
-        expect(ast_type_can_merge(&parameter->type, argument->type))
-            otherwise("expected type \"%s\" for parameter \"%s\" of function \"%s\", got type \"%s\"",
-                            ast_type_to_string(&parameter->type), 
-                            parameter->name, 
-                            this->type->u_function->name, 
-                            ast_type_to_string(argument->type));
+    /* <-< POSTFIX */
+inheritance_wrap(unary, postfix) {
+    this->value = *parent;
+    arl_init(op_unary, this->op_list);
+}
+
+    /* <+ REFERENCE */
+inheritance_op(U, unary, reference, REFERENCE) {
+    type_assignment(assign pointer) {
+        this->type = parent->type;
+        ast_type_pointer_wrap(&this->type);
     }
 }
+
+    /* <+ DEREFERENCE */
+inheritance_op(U, unary, dereference, DEREFERENCE) {
+    parent_expect(pointer) {
+        expect(ast_type_is_pointer(&parent->type))
+            otherwise("cannot dereference a non-pointer of type %s", 
+                ast_type_to_string(&parent->type));
+    }
     
+    type_assignment(assign pop) {
+        this->type = parent->type;
+        arl_pop(ast_type_level, this->type.level_list);
+    }
+}
 
-void ex_postfix_type_precheck_property(ex_postfix* this) {
-    expect(arraylist_is_empty(this->type->level_list))
-        otherwise("expected a structure for . operation, got array/pointer type \"%s\"", ast_type_to_string(this->type));
+    /* <+ BINARY NOT */
+inheritance_op(U, unary, binary_not, BINARY_NOT) {
+    parameter_expect(number) {
+        expect(ast_type_is_pp_number(&parent->type))
+            otherwise("cannot apply binary not to a non-number of type \"%s\"", 
+                ast_type_to_string(&parent->type));
+    }
 
-    expect(this->type->kind == AST_TYPE_STRUCTURE)
-        otherwise("expected a structure for . operation, got type \"%s\"", ast_type_to_string(this->type));
+    type_assignment(assign) {
+        this->type = parent->type;
+    }
+}
+
+    /* <+ LOGIC NOT */
+inheritance_op(U, unary, logic_not, LOGIC_NOT) {
+    parameter_expect(boolean) {
+        expect(ast_type_is_pp_boolean(&parent->type))
+            otherwise("cannot apply logic not to a non-boolean of type \"%s\"", 
+                ast_type_to_string(&parent->type));
+    }
+
+    type_assignment(assign) {
+        this->type = parent->type;
+    }
+}
+
+    /* < INCREMENT */
+inheritance_kind(U, unary, increment, INCREMENT) {
+    parent_expect(number) {
+        expect(ast_type_is_pp_number(&parent->type))
+            otherwise("cannot increment a non-number of type \"%s\"", 
+                ast_type_to_string(&parent->type));
+    }
+
+    type_assignment(assign) {
+        this->type = parent->type;
+    }
+}
+
+    /* < DECREMENT */
+inheritance_kind(U, unary, decrement, DECREMENT) {
+    parent_expect(number) {
+        expect(ast_type_is_pp_number(&parent->type))
+            otherwise("cannot decrement a non-number of type \"%s\"", 
+                ast_type_to_string(&parent->type));
+    }
+
+    type_assignment(assign) {
+        this->type = parent->type;
+    }
+}
+
+    /* < PLUS */
+inheritance_kind(U, unary, plus, PLUS) {
+    type_assignment(assign) {
+        this->type = parent->type;
+    }
+}
+
+    /* < MINUS */
+inheritance_kind(U, unary, minus, MINUS) {
+    parent_expect(number) {
+        expect(ast_type_is_pp_number(&parent->type))
+                otherwise("cannot negate a non-number of type \"%s\"", 
+                    ast_type_to_string(&parent->type));
+    }
+
+    type_assignment(assign) {
+        this->type = parent->type;
+    }
 }
 
 
-void ex_postfix_type_precheck_pointer_property(ex_postfix* this) {
-    expect(ast_type_last_level_is(this->type, AT_LEVEL_POINTER))
-        otherwise("expected a pointer to a structure for -> operation, got type \"%s\"", ast_type_to_string(this->type));
-
-    expect(this->type->kind == AST_TYPE_STRUCTURE)
-        otherwise("expected a structure for -> operation, got type \"%s\"", ast_type_to_string(this->type));
+    /* < PLAIN */
+inheritance_kind(U, unary, plain, PLAIN) {
+    type_assignment(assign) {
+        this->type = parent->type;
+    }
 }

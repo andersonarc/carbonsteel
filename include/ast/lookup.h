@@ -13,8 +13,8 @@
 #define CARBONSTEEL_AST_LOOKUP_H
 
     /* includes */
-#include "language/context.h"  /* parser context */
-#include "language/parser.h" /* parser */
+#include "language/context.h" /* parser context */
+#include "language/parser.h"  /* parser */
 
     /* functions */
 /**

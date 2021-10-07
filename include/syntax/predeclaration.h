@@ -68,8 +68,7 @@ d_struct(ast_type_declaration);
     /* lexical type */
 da_struct(ast_type);
     d_enum(ast_type_kind);
-    da_struct(ast_type_level);
-    d_enum(ast_type_level_kind);
+    da_enum(ast_type_level);
 
     /* primitive type */
 dl_struct(ast_type_primitive);
@@ -105,6 +104,13 @@ da_struct(declaration);
 
         /** EXPRESSIONS **/
 
+    /* properties */
+d_struct(expression_properties);
+
+    /* constant expression data */
+d_struct(expression_constant);
+    d_enum(expression_constant_kind);
+
     /* primitive */
 d_alias(ex_character, char);
 d_alias(ex_boolean, bool);
@@ -120,21 +126,26 @@ d_struct(ex_constructor);
 
     /* basic */
 d_struct(ex_basic);
+    d_struct(ex_basic_data);
     d_enum(ex_basic_kind);
 
     /* postfix */
 d_struct(ex_postfix);
+    d_struct(ex_postfix_data);
     d_enum(ex_postfix_kind);
     da_struct(ex_postfix_level);
+    d_struct(ex_postfix_level_raw);
     da_enum(ex_postfix_level_kind);
 
     /* unary */
 d_struct(ex_unary);
+    d_struct(ex_unary_data);
     d_enum(ex_unary_kind);
     da_enum(op_unary);
 
     /* cast */
 da_struct(ex_cast);
+    d_struct(ex_cast_data);
 
     /* binary */
 d_struct(ex_binary);

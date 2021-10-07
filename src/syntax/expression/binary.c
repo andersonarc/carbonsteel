@@ -10,33 +10,35 @@
     /* includes */
 #include "syntax/expression/binary.h" /* this */
 
-#include "misc/error.h" /* syntax errors */
-#include "ast/type.h" /* type functions */
-#include "misc/memory.h" /* memory allocation */
+#include "ast/type/check.h" /* type comparison */
+#include "ast/type/resolve.h" /* default types */
+#include "misc/error.h"       /* syntax errors */
+#include "misc/memory.h"      /* memory allocation */
 
     /* functions */
 
 static inline void ex_binary_check_number(op_binary operator, ast_type* type) {
-    if (!ast_type_is_number(type)) {
-        error_syntax("expected a number for a binary operation \"%s\", got \"%s\"",
-            op_binary_strings[operator], ast_type_to_string(type));
-    }
+    expect(ast_type_is_pp_number(type))
+        otherwise("expected a number for a binary operation \"%s\", got \"%s\"",
+            op_binary_strings[operator], 
+            ast_type_to_string(type));
 }
 
 
 static inline void ex_binary_check_boolean(op_binary operator, ast_type* type) {
-    if (!ast_type_is_boolean(type)) {
-        error_syntax("expected a boolean for a binary operation \"%s\", got \"%s\"",
-            op_binary_strings[operator], ast_type_to_string(type));
-    }
+    expect(ast_type_is_pp_boolean(type))
+        otherwise("expected a boolean for a binary operation \"%s\", got \"%s\"",
+            op_binary_strings[operator],
+            ast_type_to_string(type));
 }
 
 
 static inline void ex_binary_check_equal(op_binary operator, ast_type* a, ast_type* b) {
-    if (ast_type_can_merge(a, b)) {
-        error_syntax("expected equal types for a binary operation \"%s\", got \"%s\" and \"%s\"",
-                    op_binary_strings[operator], ast_type_to_string(a), ast_type_to_string(b));
-    }
+    expect(ast_type_can_merge(a, b))
+        otherwise("expected equal types for a binary operation \"%s\", got \"%s\" and \"%s\"",
+                    op_binary_strings[operator], 
+                    ast_type_to_string(a), 
+                    ast_type_to_string(b));
 }
 
 
@@ -71,7 +73,13 @@ void ex_binary_add(ex_binary* this, op_binary operator, ex_binary* operand) {
             /* first case: (number, number) => number */
             ex_binary_check_number(operator, this->type);
             ex_binary_check_number(operator, operand->type);
-            /* type is still a number, no changes */
+            ast_type* tmp;
+            expect((tmp = ast_type_merge_extend(this->type, operand->type)) != NULL)
+                otherwise("incompatible types for a binary operation \"%s\": \"%s\" and \"%s\" require an explicit cast because of integer truncation",
+                            op_binary_strings[operator],
+                            ast_type_to_string(this->type),
+                            ast_type_to_string(operand->type));
+            this->type = tmp;
             break;
 
         case OP_B_GREATER_EQUAL:
@@ -81,14 +89,14 @@ void ex_binary_add(ex_binary* this, op_binary operator, ex_binary* operand) {
             /* second case: (number, number) => boolean */
             ex_binary_check_number(operator, this->type);
             ex_binary_check_number(operator, operand->type);
-            this->type = ast_type_of_boolean();
+            ast_type_of_boolean(this->type);
             break;
 
         case OP_B_EQUAL:
         case OP_B_NOT_EQUAL:
             /* third case: (type_a, type_a) => boolean */
             ex_binary_check_equal(operator, this->type, operand->type);
-            this->type = ast_type_of_boolean();
+            ast_type_of_boolean(this->type);
             break;
 
         case OP_B_LOGIC_AND:
@@ -96,7 +104,7 @@ void ex_binary_add(ex_binary* this, op_binary operator, ex_binary* operand) {
             /* fourth case: (boolean, boolean) => boolean */
             ex_binary_check_boolean(operator, this->type);
             ex_binary_check_boolean(operator, operand->type);
-            this->type = ast_type_of_boolean();
+            ast_type_of_boolean(this->type);
             break;
         
         otherwise_error

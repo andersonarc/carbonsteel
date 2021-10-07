@@ -18,10 +18,12 @@ extern int printf(byte[] string, ...);
 void bwrite(buffer_t* buffer) {
     buffer->state = buffer_state_t.WRITE;
     
-    long index = 0;
-    float coefficient = .1e2;
+    int index = 0;
+    double coefficient = 3.14;
     while (index < buffer->size) {
         buffer->data[index] = index + coefficient;
+
+
         index++;
         coefficient *= index;
     }

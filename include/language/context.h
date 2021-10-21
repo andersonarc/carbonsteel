@@ -31,7 +31,7 @@ extern const char* se_context_level_kind_strings[];
  * Expression block structure
  * that tracks expression-specific content
  */
-struct expression_block {
+struct ex_block {
     arraylist(ex_constructor_ptr) constructors;
     expression* value;
 };
@@ -62,7 +62,7 @@ typedef struct se_context_level {
     se_context_level_kind kind;
     union {
         arraylist(ast_local_declaration) u_locals; /* in SCTX_FUNCTION   */
-        expression_block u_expression_block;       /* in SCTX_EXPRESSION */
+        ex_block u_ex_block;                       /* in SCTX_EXPRESSION */
         enum_context u_enum_context;               /* in SCTX_ENUM       */
     };
 } se_context_level;

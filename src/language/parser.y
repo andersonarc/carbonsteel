@@ -233,7 +233,7 @@
 %nterm 	<op_assign>    assignment_operator
 
 	/* expression block */
-%nterm  <expression_block>  expression_block
+%nterm  <ex_block>  expression_block
 
 	/* type */
 %nterm  <ast_type>  type
@@ -503,9 +503,9 @@ variable_declaration_statement
 			$$->name = $IDENTIFIER;
 			$$->value = $expression_block;
 
-			expect(ast_type_can_merge(&$$->type, $$->value.value->type))
+			expect(ast_type_can_merge(&$$->type, &$expression_block.value->properties->type))
 				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
-							ast_type_to_string($$->value.value->type), ast_type_to_string(&$$->type));
+							ast_type_to_string(&$expression_block.value->properties->type), ast_type_to_string(&$$->type));
 
 			se_context_level* function = context_find(context, SCTX_FUNCTION);
 			if (function != NULL) {
@@ -585,7 +585,7 @@ constructor_expression_basic
 			*$$->type = $type;
 			$$->argument_list = $invocation_expression;
 			$$->is_array = true;
-			$$->u_array_size = $expression;
+			$$->u_array_size = &$expression->data;
 		}
 	;
 
@@ -608,7 +608,7 @@ constructor_expression
 			$$ = $constructor_expression_;
 
 			ex_constructor_type_check($$);
-			arl_add(ex_constructor_ptr, context_get(context, SCTX_EXPRESSION)->u_expression_block.constructors, $$);
+			arl_add(ex_constructor_ptr, context_get(context, SCTX_EXPRESSION)->u_ex_block.constructors, $$);
 		}
 	;
 
@@ -652,7 +652,7 @@ basic_expression
 		{ inherit_extern(basic, enum_member, $$, $enum_member_expression); }
 
 	| '(' expression ')'
-		{ inherit_extern(basic, expression, $$, $expression); }
+		{ inherit_expression(basic, expression, $$, (*$expression)); }
 	;
 
 postfix_expression_recursive
@@ -660,7 +660,7 @@ postfix_expression_recursive
 		{ inherit_expression(postfix, basic, $$, $basic_expression); }
 
 	| postfix_expression_recursive[value] '[' expression ']'
-		{ inherit_self_with(postfix, index, $$, $value, $expression); }
+		{ inherit_self_with_ex(postfix, index, $$, $value, (*$expression)); }
 
 	| postfix_expression_recursive[value] invocation_expression
 		{ inherit_self_with(postfix, invocation, $$, $value, $invocation_expression); }
@@ -741,112 +741,67 @@ cast_expression
 	;
 
 binary_expression
-	: cast_expression[value]
-		{
-			$$.type = &$value.properties->type;
-			$$.v.has_operation = false;
-			$$.v.value = $value.data;
-		}
+	: cast_expression[value] /* todo naming "value", "parent" */
+		{ inherit_expression(binary, cast, $$, $value); }
 
 		/* multiplication */
-	| binary_expression[a] '*' binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_MULTIPLY, &$b); }
-	| binary_expression[a] '/' binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_DIVIDE  , &$b); }
-	| binary_expression[a] '%' binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_MODULO  , &$b); }
+	| binary_expression[a] '*' binary_expression[b] { iapi_inherit_binary(multiply, MULTIPLY, $$, $a, $b); }
+	| binary_expression[a] '/' binary_expression[b] { iapi_inherit_binary(divide,   DIVIDE,   $$, $a, $b); }
+	| binary_expression[a] '%' binary_expression[b] { iapi_inherit_binary(modulo,   MODULO,   $$, $a, $b); }
 
 		/* addition */
-	| binary_expression[a] '+' binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_ADD     , &$b); }
-	| binary_expression[a] '-' binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_SUBTRACT, &$b); }
+	| binary_expression[a] '+' binary_expression[b] { iapi_inherit_binary(add, 	   ADD,      $$, $a, $b); }
+	| binary_expression[a] '-' binary_expression[b] { iapi_inherit_binary(subtract, SUBTRACT, $$, $a, $b); }
 
 		/* bit shift */
-	| binary_expression[a] OP_SHIFT_LEFT  binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_SHIFT_LEFT , &$b); }
-	| binary_expression[a] OP_SHIFT_RIGHT binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_SHIFT_RIGHT, &$b); }
+	| binary_expression[a] OP_SHIFT_LEFT  binary_expression[b] { iapi_inherit_binary(shift_left,  SHIFT_LEFT,  $$, $a, $b); }
+	| binary_expression[a] OP_SHIFT_RIGHT binary_expression[b] { iapi_inherit_binary(shift_right, SHIFT_RIGHT, $$, $a, $b); }
 
 		/* comparison */
-	| binary_expression[a] '<' 			 	binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_LESS_THAN    , &$b); }
-	| binary_expression[a] '>' 			 	binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_GREATER_THAN , &$b); }
-	| binary_expression[a] OP_LESS_EQUAL	binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_LESS_EQUAL   , &$b); }
-	| binary_expression[a] OP_GREATER_EQUAL binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_GREATER_EQUAL, &$b); }
+	| binary_expression[a] '<' 			 	binary_expression[b] { iapi_inherit_binary(less_than,     LESS_THAN,     $$, $a, $b); }
+	| binary_expression[a] OP_LESS_EQUAL	binary_expression[b] { iapi_inherit_binary(less_equal,    LESS_EQUAL,    $$, $a, $b); }
+	| binary_expression[a] '>' 			 	binary_expression[b] { iapi_inherit_binary(greater_than,  GREATER_THAN,  $$, $a, $b); }
+	| binary_expression[a] OP_GREATER_EQUAL binary_expression[b] { iapi_inherit_binary(greater_equal, GREATER_EQUAL, $$, $a, $b); }
 
 		/* equality */
-	| binary_expression[a] OP_EQUAL 	binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_EQUAL,     &$b); }
-	| binary_expression[a] OP_NOT_EQUAL	binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_NOT_EQUAL, &$b); }
+	| binary_expression[a] OP_EQUAL 	binary_expression[b] { iapi_inherit_binary(equal,     EQUAL,     $$, $a, $b); }
+	| binary_expression[a] OP_NOT_EQUAL	binary_expression[b] { iapi_inherit_binary(not_equal, NOT_EQUAL, $$, $a, $b); }
 
 		/* bit and */
-	| binary_expression[a] '&' binary_expression[b] 		 { $$ = $a; ex_binary_add(&$$, OP_B_BINARY_AND, &$b); }
+	| binary_expression[a] '&' binary_expression[b] 		 { iapi_inherit_binary(binary_and, BINARY_AND, $$, $a, $b); }
 
 		/* bit xor */
-	| binary_expression[a] '^' binary_expression[b] 		 { $$ = $a; ex_binary_add(&$$, OP_B_BINARY_XOR, &$b); }
+	| binary_expression[a] '^' binary_expression[b] 		 { iapi_inherit_binary(binary_xor, BINARY_XOR, $$, $a, $b); }
 
 		/* bit or */
-	| binary_expression[a] '|' binary_expression[b] 		 { $$ = $a; ex_binary_add(&$$, OP_B_BINARY_OR , &$b); }
+	| binary_expression[a] '|' binary_expression[b] 		 { iapi_inherit_binary(binary_or,  BINARY_OR,  $$, $a, $b); }
 
 		/* logic and */
-	| binary_expression[a] OP_LOGIC_AND binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_LOGIC_AND, &$b); }
+	| binary_expression[a] OP_LOGIC_AND binary_expression[b] { iapi_inherit_binary(logic_and,  LOGIC_AND,  $$, $a, $b); }
 
 		/* logic or */
-	| binary_expression[a] OP_LOGIC_OR  binary_expression[b] { $$ = $a; ex_binary_add(&$$, OP_B_LOGIC_OR , &$b); }
+	| binary_expression[a] OP_LOGIC_OR  binary_expression[b] { iapi_inherit_binary(logic_or,   LOGIC_OR,   $$, $a, $b); }
 	;
 
 conditional_expression
-	: binary_expression
-		{
-			$$.value = $binary_expression;
+	: binary_expression[parent]
+		{ inherit_expression(condition, binary, $$, $parent); }
 
-			$$.has_condition = false;
-			$$.type = $$.value.type;
-		}
-
-	| binary_expression '?' expression ':' conditional_expression[value]
-		{
-			$$.value = $binary_expression;
-			
-			$$.u_if = $expression;
-			$$.u_else = allocate(ex_condition);
-			*$$.u_else = $value;
-
-			$$.has_condition = true;
-
-			expect(($$.type = ast_type_merge_extend($$.u_if->type, $$.u_else->type)) != NULL)
-				otherwise("conditional expression values are not equal: first value has type \"%s\", but second has type \"%s\"",
-							ast_type_to_string($$.u_if->type),
-							ast_type_to_string($$.u_else->type));
-
-			expect(ast_type_is_pp_boolean($$.value.type))
-				otherwise("conditional expression has non-boolean condition of type \"%s\"", 
-							ast_type_to_string($$.value.type));
-		}
+	| binary_expression[condition] '?' expression[if] ':' conditional_expression[parent]
+		{ inherit_self_with_ex_and_ex(condition, condition, $$, $parent, $condition, (*$if)); }
 	;
 
 expression
-	: conditional_expression
-		{
+	: conditional_expression[parent]
+		{ 
 			$$ = allocate(expression);
-			$$->u_value = $conditional_expression;
-
-			$$->has_assignment = false;
-			$$->type = $$->u_value.type;
+			inherit_expression(expression, condition, (*$$), $parent); 
 		}
 
-	| unary_expression[lvalue] assignment_operator[op] expression[rvalue]
+	| unary_expression[assignee] assignment_operator[operator] expression[parent]
 		{
 			$$ = allocate(expression);
-			$$->u_assignment.assignee = $lvalue;
-			$$->u_assignment.operator = $op;
-			$$->u_assignment.value = $rvalue;
-
-			$$->has_assignment = true;
-
-			expect(($$->type = ast_type_merge_prioritized(&$lvalue.properties->type, $rvalue->type)) != NULL)
-				otherwise("illegal assignment to type \"%s\" from type \"%s\"",
-								ast_type_to_string(&$lvalue.properties->type), 
-								ast_type_to_string($rvalue->type));
-
-			if ($$->u_assignment.operator != OP_A_PLAIN) {
-				expect(ast_type_is_pp_number(&$lvalue.properties->type))
-					otherwise("assignment operator \"%s\" can only be applied to numbers, got type \"%s\"", 
-								op_assign_strings[$op], 
-								ast_type_to_string(&$lvalue.properties->type));
-			}
+			inherit_self_with_ex_and(expression, assignment, (*$$), (*$parent), $assignee, $operator); 
 		}
 	;
 
@@ -858,7 +813,7 @@ expression
 expression_block
 	: expression
 	  	{
-			$$ = context_get(context, SCTX_EXPRESSION)->u_expression_block;
+			$$ = context_get(context, SCTX_EXPRESSION)->u_ex_block;
 			if (!arraylist_is_empty($$.constructors)) {
 				arl_trim(ex_constructor_ptr, $$.constructors);
 			}

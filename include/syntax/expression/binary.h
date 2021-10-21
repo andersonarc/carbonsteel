@@ -27,23 +27,39 @@
  * with a list of operands and operators
  * in order from highest to lowest priority
  */
-struct ex_binary_inline {
+struct ex_binary_data {
     bool has_operation;
     union {
         struct {
-            ex_binary_inline* a;
+            ex_binary_data* a;
             op_binary operator;
-            ex_binary_inline* b;
+            ex_binary_data* b;
         };
         ex_cast_data value;
     };
 };
-struct ex_binary {
-    ast_type* type;
-    ex_binary_inline v;
-};
 
-    /* functions */
-void ex_binary_add(ex_binary* this, op_binary operator, ex_binary* operand);
+declare_expression(binary);
+expression_inheritance(binary, cast);
+iapi_binary_data();
+iapi_binary_properties(multiply);
+iapi_binary_properties(divide);
+iapi_binary_properties(modulo);
+iapi_binary_properties(add);
+iapi_binary_properties(subtract);
+iapi_binary_properties(shift_left);
+iapi_binary_properties(shift_right);
+iapi_binary_properties(greater_than);
+iapi_binary_properties(greater_equal);
+iapi_binary_properties(less_than);
+iapi_binary_properties(less_equal);
+iapi_binary_properties(equal);
+iapi_binary_properties(not_equal);
+iapi_binary_properties(less_than);
+iapi_binary_properties(binary_and);
+iapi_binary_properties(binary_xor);
+iapi_binary_properties(binary_or);
+iapi_binary_properties(logic_and);
+iapi_binary_properties(logic_or);
 
 #endif /* CARBONSTEEL_SYNTAX_EXPRESSION_BINARY_H */

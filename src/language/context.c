@@ -54,7 +54,7 @@ void context_enter(se_context* context, se_context_level_kind kind) {
     /* initialize the level value */
     switch (kind) {
         case SCTX_EXPRESSION:
-            arl_init_empty(ex_constructor_ptr, level.u_expression_block.constructors);
+            arl_init_empty(ex_constructor_ptr, level.u_ex_block.constructors);
             break;
 
         case SCTX_FUNCTION:

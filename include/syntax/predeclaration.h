@@ -149,17 +149,21 @@ da_struct(ex_cast);
 
     /* binary */
 d_struct(ex_binary);
-    d_struct(ex_binary_inline);
+    d_struct(ex_binary_data);
 
     /* condition */
 d_struct(ex_condition);
+    d_struct(ex_condition_data);
 
     /* expression */
-d_struct(expression);
+d_struct(ex_expression);
+    d_alias(expression, ex_expression);
+    d_struct(expression_data);
+    d_alias(ex_expression_data, expression_data);
     dla_pointer(expression);
 
-    /* expression block */
-d_struct(expression_block);
+    /* block */
+d_struct(ex_block);
 
 
         /** STATEMENTS **/
@@ -181,7 +185,7 @@ da_struct(statement);
 d_struct(dc_st_variable);
     da_pointer(dc_st_variable);
 
-d_alias(st_expression, expression_block);
+d_alias(st_expression, ex_block);
 
 dla_struct(st_compound_item);
     d_alias(st_compound, list(st_compound_item));

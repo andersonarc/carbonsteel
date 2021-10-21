@@ -29,8 +29,6 @@
 #define cgd(name, argument) void macro_concatenate(codegen_, name)(argument, FILE* file, int tabs, int* tmp)
 /* --- */
 #define cgd_ex(name)            cgd(macro_concatenate(ex_, name), macro_concatenate(ex_, name)* ex)
-#define cgd_expression()        cgd(expression, expression* ex)
-#define cgd_expression_block()  cgd(expression_block, expression_block* ex)
 /* --- */
 #define cgd_st(name)            cgd(macro_concatenate(st_, name), macro_concatenate(st_, name)* st)
 #define cgd_statement()         cgd(statement, statement* st)

@@ -30,7 +30,7 @@
 struct dc_st_variable {
     ast_type type;
     char* name;
-    expression_block value;
+    ex_block value;
 };
 
 
@@ -46,7 +46,7 @@ enum st_jump_kind {
 };
 struct st_jump {
     st_jump_kind kind;
-    expression_block u_return_value;
+    ex_block u_return_value;
 };
 
 
@@ -56,7 +56,7 @@ struct st_jump {
  */
 struct st_if {
     bool has_else;
-    expression_block condition;
+    ex_block condition;
     statement* body;
     statement* u_else;
 };
@@ -68,7 +68,7 @@ struct st_if {
  * while the condition is true
  */
 struct st_while {
-    expression_block condition;
+    ex_block condition;
     statement* body;
 };
 

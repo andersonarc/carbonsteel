@@ -24,7 +24,7 @@
 #include "syntax/predeclaration.h"         /* predeclarations */
 #include "syntax/expression/primitive.h"   /* primitive expressions */
 #include "syntax/expression/operator.h"    /* operators */
-#include "syntax/expression/inheritance.h" /* expression inheritance */
+#include "syntax/expression/inheritance/interface.h" /* expression inheritance */
 
     /* typedefs */
 /**
@@ -40,7 +40,7 @@ struct ex_constructor {
     bool is_new;
     bool is_array;
     char* u_variable_name;
-    expression* u_array_size;
+    expression_data* u_array_size;
     ast_type* type;
     list(expression_ptr) argument_list;
 };
@@ -75,7 +75,7 @@ struct ex_basic_data {
         char* u_string;
         ex_constructor* u_ex_constructor;
         dc_function_parameter* u_function_parameter;
-        expression* u_expression;
+        expression_data* u_expression;
     };
 };
 
@@ -89,7 +89,7 @@ extern_inheritance(basic, enum_member, ex_enum_member*);
 extern_inheritance(basic, string, char*);
 extern_inheritance(basic, ex_constructor, ex_constructor*);
 extern_inheritance(basic, function_parameter, dc_function_parameter*);
-extern_inheritance(basic, expression, expression*);
+expression_inheritance(basic, expression);
 
 /**
  * Postfix expression consists of
@@ -119,7 +119,7 @@ enum ex_postfix_level_kind {
 struct ex_postfix_level {
     ex_postfix_level_kind kind;
     union {
-        expression* u_index;
+        expression_data* u_index;
         list(expression_ptr) u_invocation;
         dc_structure_member* u_property;
         dc_structure_member* u_pointer_property; /* for macro compatibility */
@@ -140,7 +140,7 @@ struct ex_postfix_data {
 
 declare_expression(postfix);
 expression_inheritance(postfix, basic);
-self_inheritance_with(postfix, index, expression*);
+self_inheritance_with_ex(postfix, index, expression, index);
 self_inheritance_with(postfix, invocation, list(expression_ptr));
 self_inheritance_with_before(postfix, property, dc_structure_member*, char*);
 self_inheritance_with_before(postfix, pointer_property, dc_structure_member*, char*);

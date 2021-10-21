@@ -31,9 +31,9 @@
 cgd_type();
 cgd_statement();
 cgd_st(compound);
-cgd_expression_block();
-cgd_expression();
-cgd_ex(condition);
+cgd_ex(condition_data);
+cgd_ex(expression_data);
+cgd_ex(block);
 
     /* internal functions */
 /**
@@ -72,23 +72,23 @@ cgd_ex(constructor) {
             out(string)(" = malloc(sizeof(");
             cg(type)(ex->type);
             out(string)(") * ");
-            cg(expression)(ex->u_array_size);
+            cg(ex_expression_data)(ex->u_array_size);
             out(string)(");\n");
 
             iterate_array(i, ex->argument_list.size) {
                 out(tabs)();
                 out(format)("%s[%zu] = ", ex->u_variable_name, i);
-                cg(expression)(ex->argument_list.data[i]);
+                cg(ex_expression_data)(&ex->argument_list.data[i]->data);
                 out(string)(";\n");
             }
         } else {
             out(char)('[');
-            cg(expression)(ex->u_array_size);
+            cg(ex_expression_data)(ex->u_array_size);
 
             out(string)("] = { ");
 
             iterate_array(i, ex->argument_list.size) {
-                cg(expression)(ex->argument_list.data[i]);
+                cg(ex_expression_data)(&ex->argument_list.data[i]->data);
                 if (i != ex->argument_list.size - 1) {
                     out(char)(',');
                 }
@@ -108,13 +108,13 @@ cgd_ex(constructor) {
                     iterate_array(i, ex->type->u_structure->member_list.size) {
                         out(tabs)();
                         out(format)("%s->%s = ", ex->u_variable_name, ex->type->u_structure->member_list.data[i].name);
-                        cg(expression)(ex->argument_list.data[i]);
+                        cg(ex_expression_data)(&ex->argument_list.data[i]->data);
                         out(string)(";\n");
                     }
                 } else {
                     out(string)(" = { ");
                     iterate_array(i, ex->argument_list.size) {
-                        cg(expression)(ex->argument_list.data[i]);
+                        cg(ex_expression_data)(&ex->argument_list.data[i]->data);
                         if (i != ex->argument_list.size - 1) {
                             out(char)(',');
                         }
@@ -137,7 +137,7 @@ cgd_ex(constructor) {
                     out(string)(" = ");
                 }
 
-                cg(expression)(ex->argument_list.data[0]);
+                cg(ex_expression_data)(&ex->argument_list.data[0]->data);
                 out(string)(";\n");
             break;
 
@@ -263,13 +263,14 @@ cgd_dc(enum) {
 
     /** EXPRESSION BLOCK **/
 
-cgd(expression_block_constructors, expression_block* ex) {
+cgd(ex_block_constructors, ex_block* ex) {
     iterate_array(i, ex->constructors.size) {
         cg(ex_constructor)(ex->constructors.data[i]);
     }
 }
-cgd_expression_block() {
-    cg(expression)(ex->value);
+cgd_ex(block) {
+    //todo store data, move properties into ex_block!
+    cg(ex_expression_data)(&ex->value->data);
 }
 
 
@@ -317,7 +318,7 @@ cgd_ex(basic_data) {
 
         case EX_B_EXPRESSION:
             out(char)('(');
-            cg(expression)(ex->u_expression);
+            cg(ex_expression_data)(ex->u_expression);
             out(char)(')');
             break;
 
@@ -335,7 +336,7 @@ cgd_ex(postfix_data) {
         switch (level.kind) {
             case EX_PL_INDEX:
                 out(char)('[');
-                cg(expression)(level.u_index);
+                cg(ex_expression_data)(level.u_index);
                 out(char)(']');
                 break;
 
@@ -355,11 +356,11 @@ cgd_ex(postfix_data) {
                     index_t last = level.u_invocation.size - 1;
 
                     iterate_array(j, last) {
-                        cg(expression)(level.u_invocation.data[j]);
+                        cg(ex_expression_data)(&level.u_invocation.data[j]->data);
                         out(string)(", ");
                     }
 
-                    cg(expression)(level.u_invocation.data[last]);
+                    cg(ex_expression_data)(&level.u_invocation.data[last]->data);
                 }
                 out(char)(')');
                 break;
@@ -430,42 +431,41 @@ cgd_ex(cast_data) {
 
     /** BINARY EXPRESSION **/
 
-cgd_ex(binary_inline) {
+cgd_ex(binary_data) {
     if (!ex->has_operation) {
         cg(ex_cast_data)(&ex->value);
     } else {
-        cg(ex_binary_inline)(ex->a);
+        cg(ex_binary_data)(ex->a);
         out(char)(' ');
         out(string)(op_binary_strings[ex->operator]);
         out(char)(' ');
-        cg(ex_binary_inline)(ex->b);
+        cg(ex_binary_data)(ex->b);
     }
 }
-cgd_ex(binary) { cg(ex_binary_inline)(&ex->v); }
 
 
     /** CONDITION EXPRESSION **/
 
-cgd_ex(condition) {
-    cg(ex_binary)(&ex->value);
+cgd_ex(condition_data) {
+    cg(ex_binary_data)(&ex->value);
     if (ex->has_condition) {
         out(string)(" ? ");
-        cg(expression)(ex->u_if);
+        cg(ex_expression_data)(ex->u_if);
         out(string)(" : ");
-        cg(ex_condition)(ex->u_else);
+        cg(ex_condition_data)(ex->u_else);
     }
 }
 
 
     /** EXPRESSION **/
 
-cgd_expression() {
+cgd_ex(expression_data) {
     if (ex->has_assignment) {
-        cg(ex_unary_data)(&ex->u_assignment.assignee.data);
+        cg(ex_unary_data)(&ex->u_assignment.assignee);
         out(format)(" %s ", op_assign_strings[ex->u_assignment.operator]); 
-        cg(expression)(ex->u_assignment.value);
+        cg(ex_expression_data)(ex->u_assignment.value);
     } else {
-        cg(ex_condition)(&ex->u_value);
+        cg(ex_condition_data)(&ex->u_value);
     }
 }
 
@@ -473,11 +473,11 @@ cgd_expression() {
     /** IF STATEMENT **/
 
 cgd_st(if) {
-    cg(expression_block_constructors)(&st->condition);
+    cg(ex_block_constructors)(&st->condition);
 
     out(tabs)();
     out(string)("if (");
-    cg(expression_block)(&st->condition);
+    cg(ex_block)(&st->condition);
     out(string)(") ");
 
     cg(statement)(st->body);
@@ -493,11 +493,11 @@ cgd_st(if) {
     /** WHILE STATEMENT **/
 
 cgd_st(while) {
-    cg(expression_block_constructors)(&st->condition);
+    cg(ex_block_constructors)(&st->condition);
 
     out(tabs)();
     out(string)("while (");
-    cg(expression_block)(&st->condition);
+    cg(ex_block)(&st->condition);
     out(string)(") ");
 
     cg(statement)(st->body);
@@ -519,11 +519,11 @@ cgd_st(jump) {
             break;
 
         case ST_J_RETURN:
-            cg(expression_block_constructors)(&st->u_return_value);
+            cg(ex_block_constructors)(&st->u_return_value);
 
             out(tabs)();
             out(string)("return ");
-            cg(expression_block)(&st->u_return_value);
+            cg(ex_block)(&st->u_return_value);
             out(string(";\n"));
             break;
 
@@ -550,12 +550,12 @@ cgd(st_variable_declaration, dc_st_variable* st) {
     /** VARIABLE STATEMENT **/
 
 cgd_dc_st_variable() {
-    cg(expression_block_constructors)(&st->value);
+    cg(ex_block_constructors)(&st->value);
 
     out(tabs)();
     cg(type)(&st->type);
     out(format)(" %s = ", st->name);
-    cg(expression_block)(&st->value);
+    cg(ex_block)(&st->value);
 
     out(string)(";\n");
 }
@@ -583,10 +583,10 @@ cgd_statement() {
 
         case ST_EXPRESSION:
             if (st->u_st_expression.value != NULL) {
-                cg(expression_block_constructors)(&st->u_st_expression);
+                cg(ex_block_constructors)(&st->u_st_expression);
 
                 out(tabs)();
-                cg(expression_block)(&st->u_st_expression);
+                cg(ex_block)(&st->u_st_expression);
             }
             out(string)(";\n");
             break;

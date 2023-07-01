@@ -107,14 +107,16 @@ da_struct(declaration);
     /* properties */
 d_struct(expression_properties);
 
-    /* constant expression data */
-d_struct(expression_constant);
-    d_enum(expression_constant_kind);
+    /* constant expression */
+dl_struct(ex_constant);
+    d_enum(ex_constant_kind);
 
     /* primitive */
 d_alias(ex_character, char);
-d_alias(ex_boolean, bool);
+
+    /* number */
 d_struct(ex_number);
+    d_struct(ex_number_data);
     d_enum(ex_number_kind);
 
     /* enum member */

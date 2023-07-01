@@ -74,7 +74,18 @@
         this->kind = EX_##u_prefix##_##u_name_upper;                                            \
         this->u_##u_name_lower = parent;                                                        \
     }                                                                                           \
-    properties_expression_inheritance(ex_type, parent_ex_type)
+    properties_expression_inheritance(ex_type, parent_ex_type) {                                \
+        /* no-op because properties are copied in expression inheritance */                     \
+    }
+
+#define iapi_init_union_from_dereferenced_expression(u_prefix, ex_type, parent_ex_type, u_name_upper, u_name_lower) \
+    data_expression_inheritance(ex_type, parent_ex_type) {                                                          \
+        this->kind = EX_##u_prefix##_##u_name_upper;                                                                \
+        this->u_##u_name_lower = *parent;                                                                           \
+    }                                                                                                               \
+    properties_expression_inheritance(ex_type, parent_ex_type) {                                                    \
+        /* no-op because properties are copied in expression inheritance */                                         \
+    }
 
 #define iapi_init_union_from_extern(u_prefix, ex_type, value_type, u_name_upper, u_name_lower) \
     data_extern_inheritance(ex_type, u_name_lower, value_type) {                        \
@@ -178,9 +189,13 @@
 #define iapi_binary_data()                                                                 \
     data_self_inheritance_with_ex_and(binary, operation, binary, other, op_binary operator)
 
-#define iapi_binary_properties_from_common(action_name, common_name)                  \
+#define iapi_binary_properties_from_common(action_name, common_name, operation_range) \
     iapi_binary_properties(action_name) {                                             \
         ex_binary_inherit_properties_on_##common_name(this, parent, other, operator); \
+                                                                                      \
+        iset_constant(binary_##action_name) {                                         \
+            ex_constant_inherit_binary_##operation_range(this->constant, parent->constant, lookup_op_binary(action_name), other->constant); \
+        }                                                                             \
     }
 
 #define iapi_inherit_binary(action_name, operator, ex, parent_ex, other)                                                 \
@@ -189,15 +204,42 @@
 
 
     /* inheritance annotations */
-    /* @todo document */
-#define type_assignment(_)
-#define parameter_expect(_)
-#define parent_expect(_)
-#define parent_and_parameter_expect(_)
-#define initial_inherit() *this = *parent
-#define initial_expression_inherit() this->value = *parent
-#define kind_inherit(kind_value) initial_inherit(); this->kind = kind_value
-#define op_inherit(ex_type, op) initial_inherit(); arl_add(op_##ex_type, this->op_list, op)
+/**
+ * Assignment annotations that are used
+ * to indicate mutation of type or a value
+ * of expression properties
+ */
+#define iset_type(_)
+#define iset_constant(_)
+#define iset_constant_origin(value, _) if ((value)->constant.origin != NULL)
+#define iset_type_and_constant(_)
+
+/**
+ * Required annotations for conditional
+ * constant expression evaluation
+ * 
+ * If the constant expression is unable to be evaluated,
+ * this->constant is initialized as dynamic.
+ */
+#define irequire_constant(mode) _irequire_constant_impl_##mode
+#define _irequire_impl(condition)                  \
+    if (!(condition)) {                            \
+        ex_constant_dynamic(&this->constant); \
+    } else
+
+#define _irequire_constant_impl_(value)         _irequire_impl((value)->constant.kind != EX_C_DYNAMIC)
+#define _irequire_constant_impl_integer(value)  _irequire_impl(ex_constant_is_integer(&(value)->constant))
+#define _irequire_constant_impl_signed(value)   _irequire_impl(ex_constant_is_signed(&(value)->constant))
+#define _irequire_constant_impl_unsigned(value) _irequire_impl(ex_constant_is_unsigned(&(value)->constant))
+
+/**
+ * Expection annotations that are used
+ * to indicate a type check for either 
+ * parameter, parent, or both
+ */
+#define iexpect_parameter(_)
+#define iexpect_parent(_)
+#define iexpect_parent_and_parameter(_)
 
 
 #endif /* CARBONSTEEL_SYNTAX_EXPRESSION_INHERITANCE_INTERFACE_H */

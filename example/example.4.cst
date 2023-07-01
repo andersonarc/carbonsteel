@@ -4,7 +4,9 @@ import a;
 alias size_t = int;
 
 enum buffer_state_t {
-    WRITE = 1, READ = 0.0, NONE
+    WRITE = false, 
+    READ = 0.1,
+    NONE = -1
 };
 
 type buffer_t {

@@ -23,27 +23,35 @@ iapi_init_from_parent(postfix, basic) {
 
     /* {PROPERTIES} POSTFIX < [INDEX] EXPRESSION */
 iapi_append_level_from_expression(PL, postfix, index, INDEX, expression) {
-    parameter_expect(number) {
+    iexpect_parameter(number) {
         expect(ast_type_is_pp_number(&index->type))
             otherwise("expected a numerical index for [] operation, got type \"%s\"", 
                         ast_type_to_string(&index->type));
     }
 
-    parent_expect(array) {
+    iexpect_parent(array) {
         expect(ast_type_is_array(&parent->type))
             otherwise("expected an array for [] operation, got type \"%s\"", 
                         ast_type_to_string(&parent->type));
     }
 
-    type_assignment(assign pop) {
+    iset_type(assign pop) {
         this->type = parent->type;
         arl_pop(ast_type_level, this->type.level_list);
+    }
+
+    irequire_constant()(parent) {
+        irequire_constant(unsigned)(index) {
+            iset_constant(unsigned_assign) {
+                ex_constant_unsigned_assign(this->constant, parent->constant.u_array.data[, ]);
+            }
+        }
     }
 }
 
     /* {PROPERTIES} POSTFIX < [INVOCATION] LIST<EXPRESSION> */
 iapi_append_level(PL, postfix, invocation, INVOCATION, list(expression_ptr)) {
-    parent_expect(function) {
+    iexpect_parent(function) {
         expect(parent->type.kind == AST_TYPE_FUNCTION)
             otherwise("expected a function for a () operation, got \"%s\"", 
                         ast_type_to_string(&parent->type));
@@ -53,7 +61,7 @@ iapi_append_level(PL, postfix, invocation, INVOCATION, list(expression_ptr)) {
     list(dc_function_parameter) parameter_list = function->parameters.value;
     
     /* c-style variadic arguments (...) compatibility */
-    parameter_expect(invocation argument count) {
+    iexpect_parameter(invocation argument count) {
         if (!function->parameters.is_c_vararg) {
             expect(invocation.size == parameter_list.size)
                 otherwise("invalid argument count for a function \"%s\", expected %zu, got %zu", 
@@ -69,7 +77,7 @@ iapi_append_level(PL, postfix, invocation, INVOCATION, list(expression_ptr)) {
         }
     }
 
-    parameter_expect(invocation argument types) {
+    iexpect_parameter(invocation argument types) {
         iterate_array(i, function->parameters.value.size) {
             dc_function_parameter* parameter = &parameter_list.data[i];
             expression* argument = invocation.data[i];
@@ -83,20 +91,24 @@ iapi_append_level(PL, postfix, invocation, INVOCATION, list(expression_ptr)) {
         }
     }
 
-    type_assignment(clone) {
+    iset_type(clone) {
         ast_type_clone_to(&this->type, function->return_type);
+    }
+
+    iset_constant(dynamic) {
+        ex_constant_dynamic(&this->constant);
     }
 }
 
     /* POSTFIX < [PROPERTY] {STRING -> STRUCTURE MEMBER} */
 self_inheritance_before(postfix, property, dc_structure_member*, char* property_name) {
-    parent_expect(plain) {
+    iexpect_parent(plain) {
         expect(ast_type_is_plain(&parent->type))
             otherwise("expected a plain structure for . operation, got type \"%s\"", 
                         ast_type_to_string(&parent->type));
     }
 
-    parent_expect(structure) {
+    iexpect_parent(structure) {
         expect(parent->type.kind == AST_TYPE_STRUCTURE)
             otherwise("expected a structure for . operation, got type \"%s\"", 
                         ast_type_to_string(&parent->type));
@@ -111,20 +123,24 @@ self_inheritance_before(postfix, property, dc_structure_member*, char* property_
     );
 }
 iapi_append_level(PL, postfix, property, PROPERTY, dc_structure_member*) {
-    type_assignment(clone) {
+    iset_type(clone) {
         ast_type_clone_to(&this->type, property->type);
+    }
+    //todo
+    iset_constant(dynamic) {
+        ex_constant_dynamic(&this->constant);
     }
 }
 
     /* POSTFIX < [POINTER PROPERTY] {STRING -> STRUCTURE MEMBER} */
 self_inheritance_before(postfix, pointer_property, dc_structure_member*, char* property_name) {
-    parent_expect(single pointer) {
+    iexpect_parent(single pointer) {
         expect(ast_type_is_single_pointer(&parent->type))
             otherwise("expected a structure pointer for -> operation, got type \"%s\"", 
                         ast_type_to_string(&parent->type));
     }
 
-    parent_expect(structure) {
+    iexpect_parent(structure) {
         expect(parent->type.kind == AST_TYPE_STRUCTURE)
             otherwise("expected a structure pointer for -> operation, got type \"%s\"", 
                         ast_type_to_string(&parent->type));
@@ -139,21 +155,31 @@ self_inheritance_before(postfix, pointer_property, dc_structure_member*, char* p
     );
 }
 iapi_append_level(PL, postfix, pointer_property, POINTER_PROPERTY, dc_structure_member*) {
-    type_assignment(clone) {
+    iset_type(clone) {
         ast_type_clone_to(&this->type, pointer_property->type);
+    }
+    iset_constant(dynamic) {
+        ex_constant_dynamic(&this->constant);
     }
 }
 
     /* {PROPERTIES} POSTFIX < [INCREMENT] */
 iapi_init_with_kind(P, postfix, increment, INCREMENT) {
-    parent_expect(number) {
+    iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
                     otherwise("cannot increment a non-number of type \"%s\"", 
                         ast_type_to_string(&parent->type));
     }
 
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(assign) {
+        this->constant = parent->constant;
+    }
+    iset_constant_origin(this, increment) {
+        ex_constant_apply_postfix((*this->constant.origin), + 1);
+        //todo is increment of the original value correct?
     }
 }
 
@@ -163,14 +189,24 @@ iapi_init_with_kind(P, postfix, decrement, DECREMENT) {
             otherwise("cannot decrement a non-number of type \"%s\"", 
                 ast_type_to_string(&parent->type));
 
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(assign) {
+        this->constant = parent->constant;
+    }
+    iset_constant_origin(this, increment) {
+        ex_constant_apply_postfix((*this->constant.origin), - 1);
+        //todo is increment of the original value correct?
     }
 }
 
     /* {PROPERTIES} POSTFIX < [PLAIN] */
 iapi_init_with_kind(P, postfix, plain, PLAIN) {
-    type_assignment(assign) { //todo inline type_assignment e.g. type_assignment(assign)(parent->type...)
+    iset_type(assign) { //todo inline iset_type e.g. iset_type(assign)(parent->type...)
         this->type = parent->type;
+    }
+    iset_constant(assign) {
+        this->constant = parent->constant;
     }
 }

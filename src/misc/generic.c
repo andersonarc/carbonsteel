@@ -36,3 +36,4 @@ arraylist_define(dc_function_parameter);
 arraylist_define(dc_import_node);
 arraylist_define(declaration);
 arraylist_define(op_unary);
+list_define(ex_constant);

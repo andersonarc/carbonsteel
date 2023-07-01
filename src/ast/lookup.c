@@ -29,6 +29,17 @@
  */
 myytoken_kind_t ast_lex_token(se_context* context, MYYSTYPE* yylval, char* token) {
     /**
+     * Handle flag context
+     */
+    flag_context flags;
+    if (context_is(context, SCTX_FLAG)) {
+        flags = context_current(context)->u_flag_context;
+        context_exit(context);
+    } else {
+        flag_context_init(flags);
+    }
+
+    /**
      * Context-aware lookup
      */
     int context_result = context_lex_token(context, yylval, token);
@@ -44,6 +55,19 @@ myytoken_kind_t ast_lex_token(se_context* context, MYYSTYPE* yylval, char* token
     if (hsearch_r(request, FIND, &result, context->ast.hash_table) != 0) {
         ast_declaration* dc = (ast_declaration*) result->data;
         yylval->TOKEN_ANY_NAME = dc->u__any;
+
+        /**
+         * Unsigned integer workaround
+         */
+        flag_context_if_unsigned(flags) {
+            //todo workaround for aliases required?
+            if (dc->kind == TOKEN_PRIMITIVE_NAME && ast_type_primitive_is_signed(dc->u_primitive)) {
+                dc->u_primitive = primitive_signed_to_unsigned(dc->u_primitive);
+            } else {
+                error_syntax("only primitive integers can be unsigned");
+            }
+        }
+
         return dc->kind;
     }
 

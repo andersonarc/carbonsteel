@@ -60,83 +60,10 @@
     }
 
 
-/**
- * Initializes an arraylist with specified size
- * 
- * @param[in]  type Type of the arraylist
- * @param[out] list The arraylist
- * @param[in]  size Size of the arraylist
- */
-#define arl_init_with_size(type, list, size)                                                                        \
-    if (arraylist_init(type)(&list, size) != ST_OK) {                                                               \
-        error_internal(arraylist_to_string(type, list) " failed to initialize", arraylist_to_string_format(list));  \
-    }
-    
-
-/**
- * Initializes an arraylist with default size
- * 
- * @param[in]  type Type of the arraylist
- * @param[out] list The arraylist
- */
-#define arl_init(type, list) arl_init_with_size(type, list, ARRAYLIST_DEFAULT_SIZE)
-
-
-/**
- * Initializes an empty arraylist
- * 
- * @param[in]  type Type of the arraylist
- * @param[out] list The arraylist
- */
-#define arl_init_empty(type, list) arl_init_with_size(type, list, 0)
-
-
-/**
- * Trims an arraylist
- * 
- * @param[in] type Type of the arraylist
- * @param[in] list The arraylist
- */
-#define arl_trim(type, list)                                                                                    \
-    if (arraylist_trim(type)(&list) != ST_OK) {                                                                 \
-        error_internal("failed to trim " arraylist_to_string(type, list), arraylist_to_string_format(list));    \
-    }
-
-
-/**
- * Adds an element to an arraylist
- * 
- * @param[in] type Type of the arraylist
- * @param[in] list The arraylist
- * @param[in] element The element
- */
-#define arl_add(type, list, element)                                                                                                    \
-    if (arraylist_add(type)(&list, element) != ST_OK) {                                                                                 \
-        error_internal("failed to add new element " #element " to " arraylist_to_string(type, list), arraylist_to_string_format(list)); \
-    }
-
-
-/**
- * Removes an element from top of an arraylist
- * 
- * @param[in] type Type of the arraylist
- * @param[in] list The arraylist
- */
-#define arl_pop(type, list)                                                                                                         \
-    if (arraylist_pop(type)(&list) != ST_OK) {                                                                                      \
-        error_internal("failed to remove element from top of " arraylist_to_string(type, list), arraylist_to_string_format(list));  \
-    }
-
-
-/**
- * Initializes an arraylist with default
- * size and adds a new element
- * 
- * @param[in] type Type of the arraylist
- * @param[in] list The arraylist
- * @param[in] element The element to append
- */
-#define arl_init_add(type, list, element) arl_init(type, list); arl_add(type, list, element)
+#define arl_init(type, list)
+#define arl_trim(type, list)          
+#define arl_add(type, list, element)
+#define arl_pop(type, list)
 
 
 /**

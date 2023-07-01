@@ -19,14 +19,14 @@
  * 
  *  ast_type_is_array   - type is an array
  *  ast_type_is_pointer - type is a pointer
- *  ast_type_is_single_pointer - type is a single pointer
+ *  | - ast_type_is_single_pointer - type is a single pointer
  *  ast_type_is_plain   - type is plain (not array or pointer)
  * 
  *  Plain and primitive types are referred as [pp]
  * 
  *  ast_type_is_pp        - type is [p]lain and [p]rimitive
- *  ast_type_is_pp_number - type is [pp] and a number
- *  ast_type_is_pp_bool   - type is [pp] and a boolean
+ *  | - ast_type_is_pp_number - type is [pp] and a number
+ *  | - ast_type_is_pp_bool   - type is [pp] and a boolean
  * 
  * @param[in] value Pointer to the type
  * 
@@ -39,7 +39,20 @@ bool ast_type_is_plain  (ast_type* value);
 
 bool ast_type_is_pp        (ast_type* value);
 bool ast_type_is_pp_number (ast_type* value);
+bool ast_type_is_pp_integer(ast_type* value);
 bool ast_type_is_pp_boolean(ast_type* value);
+
+
+/**
+ * Advanced type comparison function
+ * which ensures that a value of given type
+ * can be assigned to a variable of specified type
+ * without truncation or precision loss
+ * 
+ * @param[in] assignee The variable
+ * @param[in] value The value to be checked for being suitable
+ */
+bool ast_type_can_assign(ast_type* assignee, ast_type* value);
 
 
 /**

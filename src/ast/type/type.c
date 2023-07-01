@@ -27,7 +27,7 @@ void ast_type_init(ast_type* type, ast_type_kind kind, void* value) {
     /* initialize a new type */
     type->kind = kind;
     type->u__any = value;
-    arl_init_empty(ast_type_level, type->level_list);
+    arraylist_init_empty(ast_type_level)(&type->level_list);
 }
 
 /**
@@ -56,7 +56,7 @@ ast_type* ast_type_new(ast_type_kind kind, void* value) {
 void ast_type_clone_to(ast_type* dest, ast_type src) {
     dest->kind = src.kind;
     dest->u__any = src.u__any;
-    arl_init_empty(ast_type_level, dest->level_list);
+    arraylist_init_empty(ast_type_level)(&dest->level_list);
     iterate_array(i, src.level_list.size) {
         arl_add(ast_type_level, dest->level_list, src.level_list.data[i]);
     }

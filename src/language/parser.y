@@ -75,9 +75,9 @@
 %token <char*>  IDENTIFIER 			"identifier"
 
 	/* constants */
-%token <int>   	INT_CONSTANT   		"int constant"
+%token <long long>   LONG_CONSTANT  "long constant"
 %token <char>   CHAR_CONSTANT   	"char constant"
-%token <float>  FLOAT_CONSTANT 		"float constant"
+%token <double> DOUBLE_CONSTANT 	"double constant"
 %token <char*>  STRING_LITERAL 		"string literal"
 %token <bool>   TRUE				"true"
 %token <bool>   FALSE				"false"
@@ -123,6 +123,8 @@
 		CONTINUE 	"continue"
 		RETURN		"return"
 		BREAK		"break"
+
+		UNSIGNED    "unsigned"
 
 	/* type references */
 %token <dc_structure*> 			STRUCTURE_NAME 		"structure name"
@@ -394,11 +396,8 @@ function_parameters
 	;
 
 function_parameter_list
-	: function_parameter 
-		{ arl_init_add(dc_function_parameter, $$, $function_parameter); }
-
-	| function_parameter_list[value] ',' function_parameter 
-		{ arl_assign_add(dc_function_parameter, $$, $function_parameter, $value); }
+	: function_parameter { arraylist_init_with(dc_function_parameter)(&$$, $function_parameter); }
+	| function_parameter_list[value] ',' function_parameter { arl_assign_add(dc_function_parameter, $$, $function_parameter, $value); }
 	;
 
 function_parameter
@@ -427,11 +426,8 @@ structure_body
 	;
 
 structure_member_list
-	: structure_member
-		{ arl_init_add(dc_structure_member, $$, $structure_member); }
-
-	| structure_member_list[value] structure_member 
-		{ arl_assign_add(dc_structure_member, $$, $structure_member, $value); }
+	: structure_member { arraylist_init_with(dc_structure_member)(&$$, $structure_member); }
+	| structure_member_list[value] structure_member { arl_assign_add(dc_structure_member, $$, $structure_member, $value); }
 	;
 
 structure_member
@@ -465,33 +461,53 @@ enum_body
 
 enum_member_list
 	: enum_member
-		{ arl_init_add(dc_enum_member, $$, $enum_member); }
+		{ arraylist_init_with(dc_enum_member)(&$$, $enum_member); }
 
 	| enum_member_list[value] ',' enum_member
 		{ arl_assign_add(dc_enum_member, $$, $enum_member, $value); }
 	;
 
 enum_member
-	: IDENTIFIER '=' number_expression
+	: IDENTIFIER '=' expression
 		{
 			enum_context* parent_enum = &context_get(context, SCTX_ENUM)->u_enum_context;
 
 			$$.name = $IDENTIFIER;
-			$$.value = $number_expression;
+
+			expect(parent_enum->kind != ENUM_KIND_IMPLICIT)
+				otherwise("enum with implicit values already defined cannot have explicit values");
+
+			$$.value = $expression->properties->constant;
+
+			expect($$.value.kind != EX_C_ARRAY &&
+				   $$.value.kind != EX_C_STRUCTURE &&
+				   $$.value.kind != EX_C_DYNAMIC) 
+				otherwise("invalid constant value for an enum member");
+
 			$$.parent = parent_enum->value;
 
 			parent_enum->member_index++;
+			parent_enum->kind = ENUM_KIND_EXPLICIT;
 		}
 	| IDENTIFIER
 		{
 			enum_context* parent_enum = &context_get(context, SCTX_ENUM)->u_enum_context;
 
 			$$.name = $IDENTIFIER;
-			$$.value.kind = EX_N_INT;
-			$$.value.u_int_constant = parent_enum->member_index;
+
+			expect(parent_enum->kind != ENUM_KIND_EXPLICIT)
+				otherwise("enum with explicit values already defined cannot contain implicit values");
+
+			$$.value.kind = EX_C_INT; //todo check current index to be in bounds
+			$$.value.u_int = parent_enum->member_index;
+			//todo use long?
+			//todo go back to multiple ConstExpr types
+			$$.value.origin = NULL;
+
 			$$.parent = parent_enum->value;
 
 			parent_enum->member_index++;
+			parent_enum->kind = ENUM_KIND_IMPLICIT;
 		}
 	;
 
@@ -543,7 +559,7 @@ import_declaration
 
 import_node_list
 	: import_node
-		{ arl_init_add(dc_import_node, $$, $import_node); }
+		{ arraylist_init_with(dc_import_node)(&$$, $import_node); }
 
 	| import_node_list[value] '.' import_node
 		{ arl_assign_add(dc_import_node, $$, $import_node, $value); }
@@ -565,8 +581,8 @@ boolean_expression
 	;
 
 number_expression
-	: INT_CONSTANT	 { u_init($$, EX_N_INT)  .u_int_constant   = $INT_CONSTANT;   }
-	| FLOAT_CONSTANT { u_init($$, EX_N_FLOAT).u_float_constant = $FLOAT_CONSTANT; }
+	: LONG_CONSTANT	  { inherit_extern(number, long,   $$, $LONG_CONSTANT);   }
+	| DOUBLE_CONSTANT { inherit_extern(number, double, $$, $DOUBLE_CONSTANT); }
 	;
 
 constructor_expression_basic
@@ -637,7 +653,7 @@ basic_expression
 		{ inherit_extern(basic, boolean, $$, $boolean_expression); }
 
 	| number_expression
-		{ inherit_extern(basic, number, $$, $number_expression); }
+		{ inherit_expression(basic, number, $$, $number_expression); }
 
 	| CHAR_CONSTANT
 		{ inherit_extern(basic, character, $$, $CHAR_CONSTANT); }
@@ -691,11 +707,8 @@ invocation_expression
 		{ li_init_empty(expression_ptr, $$); }
 
 invocation_argument_list
-	: expression
-		{ arl_init_add(expression_ptr, $$, $expression); }
-
-	| invocation_argument_list[value] ',' expression 
-		{ arl_assign_add(expression_ptr, $$, $expression, $value); }
+	: expression { arraylist_init_with(expression_ptr)(&$$, $expression); }
+	| invocation_argument_list[value] ',' expression { arl_assign_add(expression_ptr, $$, $expression, $value); }
 	;
 
 unary_expression_recursive
@@ -843,6 +856,18 @@ type
 				arl_trim(ast_type_level, $$.level_list);
 			}
 		}
+	| UNSIGNED
+		{
+			context_enter(context, SCTX_FLAG);
+			flag_context_set_unsigned(context_current(context)->u_flag_context);
+		}
+	  type_
+	  	{
+			$$ = $type_;
+			if (!arraylist_is_empty($$.level_list)) {
+				arl_trim(ast_type_level, $$.level_list);
+			}
+		}
 	;
 
 type_
@@ -892,11 +917,8 @@ compound_statement
 	;
 
 compound_statement_item_list
-	: compound_statement_item
-		{ arl_init_add(st_compound_item, $$, $compound_statement_item); }
-
-	| compound_statement_item_list[value] compound_statement_item
-		{ arl_assign_add(st_compound_item, $$, $compound_statement_item, $value); }
+	: compound_statement_item { arraylist_init_with(st_compound_item)(&$$, $compound_statement_item); }
+	| compound_statement_item_list[value] compound_statement_item { arl_assign_add(st_compound_item, $$, $compound_statement_item, $value); }
 	;
 
 compound_statement_item
@@ -907,7 +929,7 @@ compound_statement_item
 expression_statement
 	: ';'
 		{ 
-			arl_init_empty(ex_constructor_ptr, $$.constructors);
+			arraylist_init_empty(ex_constructor_ptr)(&$$.constructors);
 			$$.value = NULL;
 		}
 

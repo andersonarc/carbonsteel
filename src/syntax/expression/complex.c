@@ -31,7 +31,7 @@ data_self_inheritance_with_ex_and_ex(condition, condition, binary, condition, ex
     this->has_condition = true;
 }
 properties_self_inheritance_with_ex_and_ex(condition, condition, condition, if_branch) {
-    parameter_expect(boolean) {
+    iexpect_parameter(boolean) {
         expect(ast_type_is_pp_boolean(&condition->type))
             otherwise("conditional expression has non-boolean condition of type \"%s\"", 
                         ast_type_to_string(&condition->type));
@@ -42,14 +42,14 @@ properties_self_inheritance_with_ex_and_ex(condition, condition, condition, if_b
 
     ast_type* tmp;
 
-    parent_and_parameter_expect(mergeable) {
+    iexpect_parent_and_parameter(mergeable) {
         expect((tmp = ast_type_merge_extend(&if_branch->type, &parent->type)) != NULL)
             otherwise("conditional expression values are not equal: first value has type \"%s\", but second has type \"%s\"",
                         ast_type_to_string(&if_branch->type),
                         ast_type_to_string(&parent->type));
     }
 
-    type_assignment(merge) {
+    iset_type(merge) {
         this->type = *tmp;
     }
 }
@@ -69,16 +69,14 @@ data_self_inheritance_with_ex_and(expression, assignment, unary, assignee, op_as
     this->has_assignment = true;
 }
 properties_self_inheritance_with_ex_and(expression, assignment, assignee, op_assign operator) {
-    ast_type* tmp;
-
-    parent_and_parameter_expect(mergeable) {
-        expect((tmp = ast_type_merge_prioritized(&assignee->type, &parent->type)) != NULL)
+    iexpect_parent_and_parameter(assignable) {
+        expect(ast_type_can_assign(&assignee->type, &parent->type))
             otherwise("illegal assignment to type \"%s\" from type \"%s\"",
                             ast_type_to_string(&assignee->type), 
                             ast_type_to_string(&parent->type));
     }
 
-    parameter_expect(number if not plain assignment) {
+    iexpect_parameter(number if not plain assignment) {
         if (operator != OP_A_PLAIN) {
             expect(ast_type_is_pp_number(&assignee->type))
                 otherwise("assignment operator \"%s\" can only be applied to numbers, got type \"%s\"", 

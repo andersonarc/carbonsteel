@@ -23,102 +23,132 @@ iapi_init_from_parent(unary, postfix) {
 
     /* {PROPERTIES} UNARY < [REFERENCE] */
 iapi_append_operator(U, unary, reference, REFERENCE) {
-    type_assignment(assign pointer) {
+    iset_type(assign pointer) {
         this->type = parent->type;
         ast_type_pointer_wrap(&this->type);
+    }
+    iset_constant(assign) {
+        this->constant = parent->constant;
     }
 }
 
     /* {PROPERTIES} UNARY < [DEREFERENCE] */
 iapi_append_operator(U, unary, dereference, DEREFERENCE) {
-    parent_expect(pointer) {
+    iexpect_parent(pointer) {
         expect(ast_type_is_pointer(&parent->type))
             otherwise("cannot dereference a non-pointer of type %s", 
                 ast_type_to_string(&parent->type));
     }
     
-    type_assignment(assign pop) {
+    iset_type(assign pop) {
         this->type = parent->type;
         arl_pop(ast_type_level, this->type.level_list);
+    }
+    iset_constant(assign) {
+        this->constant = parent->constant;
     }
 }
 
    /* {PROPERTIES} UNARY < [BINARY NOT] */
 iapi_append_operator(U, unary, binary_not, BINARY_NOT) {
-    parameter_expect(number) {
+    iexpect_parameter(number) {
         expect(ast_type_is_pp_number(&parent->type))
             otherwise("cannot apply binary not to a non-number of type \"%s\"", 
                 ast_type_to_string(&parent->type));
     }
 
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
     }
 }
 
     /* {PROPERTIES} UNARY < [LOGIC NOT] */
 iapi_append_operator(U, unary, logic_not, LOGIC_NOT) {
-    parameter_expect(boolean) {
+    iexpect_parameter(boolean) {
         expect(ast_type_is_pp_boolean(&parent->type))
             otherwise("cannot apply logic not to a non-boolean of type \"%s\"", 
                 ast_type_to_string(&parent->type));
     }
 
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(logic not) {
+        ex_constant_init(this->constant, BOOLEAN, boolean, ((uint8_t) !parent->constant.u_boolean));
     }
 }
 
     /* {PROPERTIES} UNARY < [INCREMENT] */
 iapi_init_with_kind(U, unary, increment, INCREMENT) {
-    parent_expect(number) {
+    iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
             otherwise("cannot increment a non-number of type \"%s\"", 
                 ast_type_to_string(&parent->type));
     }
 
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(inherit increment) {
+        ex_constant_inherit_prefix(this->constant, parent->constant, ++);
+    }
+    iset_constant_origin(this, increment) {
+        ex_constant_apply_postfix((*this->constant.origin), + 1);
     }
 }
 
     /* {PROPERTIES} UNARY < [DECREMENT] */
 iapi_init_with_kind(U, unary, decrement, DECREMENT) {
-    parent_expect(number) {
+    iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
             otherwise("cannot decrement a non-number of type \"%s\"", 
                 ast_type_to_string(&parent->type));
     }
 
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(inherit increment) {
+        ex_constant_inherit_prefix(this->constant, parent->constant, --);
+    }
+    iset_constant_origin(this, increment) {
+        ex_constant_apply_postfix((*this->constant.origin), - 1);
     }
 }
 
     /* {PROPERTIES} UNARY < [PLUS] */
 iapi_init_with_kind(U, unary, plus, PLUS) {
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(assign) {
+        this->constant = parent->constant;
     }
 }
 
     /* {PROPERTIES} UNARY < [MINUS] */
 iapi_init_with_kind(U, unary, minus, MINUS) {
-    parent_expect(number) {
+    iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
                 otherwise("cannot negate a non-number of type \"%s\"", 
                     ast_type_to_string(&parent->type));
     }
 
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(inherit negate) {
+        ex_constant_inherit_prefix(this->constant, parent->constant, -);
     }
 }
 
 
     /* {PROPERTIES} UNARY < [PLAIN] */
 iapi_init_with_kind(U, unary, plain, PLAIN) {
-    type_assignment(assign) {
+    iset_type(assign) {
         this->type = parent->type;
+    }
+    iset_constant(assign) {
+       this->constant = parent->constant;
     }
 }

@@ -34,6 +34,7 @@ cgd_st(compound);
 cgd_ex(condition_data);
 cgd_ex(expression_data);
 cgd_ex(block);
+cgd_ex(constant);
 
     /* internal functions */
 /**
@@ -207,14 +208,14 @@ cgd_type() {
 
     /** NUMBER EXPRESSION **/
 
-cgd_ex(number) {
+cgd_ex(number_data) {
     switch (ex->kind) {
-        case EX_N_FLOAT:
-            out(format)("%f", ex->u_float_constant);
+        case EX_N_DOUBLE:
+            out(format)("%g", ex->u_double);
             break;
 
-        case EX_N_INT:
-            out(format)("%d", ex->u_int_constant);
+        case EX_N_LONG:
+            out(format)("%lld", ex->u_long);
             break;
 
         otherwise_error
@@ -246,7 +247,7 @@ cgd_dc(enum) {
             member = &dc->member_list.data[i];
             cg(enum_member)(member);
             out(string)(" = ");
-            cg(ex_number)(&member->value);
+            cg(ex_constant)(&member->value);
             out(string)(",\n");
         }
 
@@ -254,7 +255,7 @@ cgd_dc(enum) {
         member = &dc->member_list.data[last];
         cg(enum_member)(member);
         out(string)(" = ");
-        cg(ex_number)(&member->value);
+        cg(ex_constant)(&member->value);
         out(char)('\n');
     }
     out(format)("} %s;\n\n", dc->name);
@@ -274,6 +275,55 @@ cgd_ex(block) {
 }
 
 
+    /** CONSTANT EXPRESSION */
+cgd_ex(constant) {
+    switch (ex->kind) {
+        case EX_C_BOOLEAN:
+            out(string)(ex->u_boolean ? "true" : "false");
+            break;
+
+        case EX_C_BYTE:
+        //todo use conversion functions
+            out(format)("%d", ex->u_byte);
+            break;
+
+        case EX_C_SHORT:
+            out(format)("%d", ex->u_short);
+            break;
+
+        case EX_C_INT:
+            out(format)("%d", ex->u_int);
+            break;
+
+        case EX_C_LONG:
+            out(format)("%zu", ex->u_long);
+            break;
+        
+        case EX_C_FLOAT:
+            out(format)("%g", ex->u_float);
+            break;
+
+        case EX_C_DOUBLE:
+            out(format)("%g", ex->u_double);
+            break;
+
+        case EX_C_ARRAY:
+            logfe("code generation for array constant expressions is not supported");
+            break;
+
+        case EX_C_STRUCTURE:
+            logfe("code generation for structure constant expressions is not supported");
+            break;
+
+        case EX_C_DYNAMIC:
+            logfe("code generation for dynamic constant expressions is not supported");
+            break;
+
+        otherwise_error
+    }
+}
+
+
     /** BASIC EXPRESSION **/
 
 cgd_ex(basic_data) {
@@ -287,7 +337,7 @@ cgd_ex(basic_data) {
             break;
 
         case EX_B_NUMBER:
-            cg(ex_number)(&ex->u_number);
+            cg(ex_number_data)(&ex->u_number);
             break;
 
         case EX_B_BOOLEAN:

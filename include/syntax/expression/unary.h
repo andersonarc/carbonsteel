@@ -7,7 +7,6 @@
  *  Unary expression types file
  * 
  *  Unary expressions include:
- *   - ex_enum_member, enum member expression
  *   - ex_constructor, constructor expression
  *   - ex_basic, basic expression
  *   - ex_postfix, postfix unary operation expression
@@ -45,6 +44,9 @@ struct ex_constructor {
     list(expression_ptr) argument_list;
 };
 
+void ex_constructor_type_check(ex_constructor* this);
+
+
 
 /**
  * Basic expression could be
@@ -68,8 +70,8 @@ struct ex_basic_data {
     union {
         dc_st_variable* u_variable;
         dc_function* u_function;
-        ex_number u_number;
-        ex_boolean u_boolean;
+        ex_number_data u_number;
+        bool u_boolean;
         ex_character u_character;
         ex_enum_member* u_enum_member;
         char* u_string;
@@ -82,8 +84,8 @@ struct ex_basic_data {
 declare_expression(basic);
 extern_inheritance(basic, variable, dc_st_variable*);
 extern_inheritance(basic, function, dc_function*);
-extern_inheritance(basic, number, ex_number);
-extern_inheritance(basic, boolean, ex_boolean);
+expression_inheritance(basic, number);
+extern_inheritance(basic, boolean, bool);
 extern_inheritance(basic, character, ex_character);
 extern_inheritance(basic, enum_member, ex_enum_member*);
 extern_inheritance(basic, string, char*);

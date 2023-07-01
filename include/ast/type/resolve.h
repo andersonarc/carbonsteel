@@ -34,7 +34,6 @@
 void ast_type_of_string(ast_type* this);
 void ast_type_of_boolean(ast_type* this);
 void ast_type_of_character(ast_type* this);
-void ast_type_of_ex_number(ast_type* this, ex_number_kind kind);
 void ast_type_of_ex_constructor(ast_type* this, ex_constructor* ex);
 
 

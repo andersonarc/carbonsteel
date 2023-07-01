@@ -21,6 +21,30 @@
     /* includes */
 #include "syntax/expression/unary.h" /* unary expressions */
 
+    /* defines */
+/**
+ * Binary operator name lookup table
+ */
+#define lookup_op_binary(action_name) _IMPL_OP_BINARY_##action_name
+#define _IMPL_OP_BINARY_multiply      *
+#define _IMPL_OP_BINARY_divide        /
+#define _IMPL_OP_BINARY_modulo        %
+#define _IMPL_OP_BINARY_add           +
+#define _IMPL_OP_BINARY_subtract      -
+#define _IMPL_OP_BINARY_shift_left    <<
+#define _IMPL_OP_BINARY_shift_right   >>
+#define _IMPL_OP_BINARY_greater_than  >
+#define _IMPL_OP_BINARY_greater_equal >=
+#define _IMPL_OP_BINARY_less_than     <
+#define _IMPL_OP_BINARY_less_equal    <=
+#define _IMPL_OP_BINARY_equal         ==
+#define _IMPL_OP_BINARY_not_equal     !=
+#define _IMPL_OP_BINARY_binary_and    &
+#define _IMPL_OP_BINARY_binary_xor    ^
+#define _IMPL_OP_BINARY_binary_or     |
+#define _IMPL_OP_BINARY_logic_and     &&
+#define _IMPL_OP_BINARY_logic_or      ||
+
     /* typedefs */
 /**
  * Binary expression type definition
@@ -55,7 +79,6 @@ iapi_binary_properties(less_than);
 iapi_binary_properties(less_equal);
 iapi_binary_properties(equal);
 iapi_binary_properties(not_equal);
-iapi_binary_properties(less_than);
 iapi_binary_properties(binary_and);
 iapi_binary_properties(binary_xor);
 iapi_binary_properties(binary_or);

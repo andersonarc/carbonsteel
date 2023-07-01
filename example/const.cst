@@ -1,0 +1,5 @@
+enum constexpr_test {
+    A = 0,
+    B = 1 + 2,
+    C = 12.44
+};

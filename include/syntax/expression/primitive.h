@@ -15,6 +15,9 @@
 
     /* includes */
 #include "syntax/predeclaration.h" /* predeclarations */
+#include "syntax/expression/inheritance/interface.h" /* inheritance */
+
+#include <stdint.h> /* int types */
 
     /* typedefs */
 /**
@@ -22,14 +25,19 @@
  * an integer or a float constant
  */
 enum ex_number_kind {
-    EX_N_INT, EX_N_FLOAT
+    EX_N_LONG, EX_N_DOUBLE
 };
-struct ex_number {
+
+struct ex_number_data {
     ex_number_kind kind;
     union {
-        int u_int_constant;
-        float u_float_constant;
+        long long u_long;
+        double u_double;
     };
 };
+
+declare_expression(number);
+extern_inheritance(number, long, long long);
+extern_inheritance(number, double, double);
 
 #endif /* CARBONSTEEL_SYNTAX_EXPRESSION_PRIMITIVE_H */

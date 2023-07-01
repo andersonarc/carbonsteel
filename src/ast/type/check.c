@@ -30,39 +30,6 @@ bool ast_type_last_level_is(ast_type* value, ast_type_level level) {
 
 //todo @return With Capital Letter
 
-/**
- * Performs operations with the so-called
- * primitive index of the primitive type
- * 
- * [0] is void
- * [1] is bool
- * [2..5] are integers
- * [6..7] are floats
- * 
- * @param value Pointer to the primitive type
- * 
- * @return(get) The primitive index
- * 
- * @return(is)  True if the primitive index 
- *                  matches the expected range
- */
-int ast_type_get_primitive_index(ast_type_primitive* value) { 
-    return value - primitive_list.data; 
-}
-
-bool ast_type_primitive_is_void(ast_type_primitive* value) { 
-    return ast_type_get_primitive_index(value) == PRIMITIVE_INDEX_VOID;
-}
-
-bool ast_type_primitive_is_boolean(ast_type_primitive* value) {
-    return ast_type_get_primitive_index(value) == PRIMITIVE_INDEX_BOOL;
-}
-
-bool ast_type_primitive_is_number(ast_type_primitive* value) { 
-    return ast_type_get_primitive_index(value) > PRIMITIVE_INDEX_BOOL;
-}
-
-
     /* functions */
 /**
  * Type check functions
@@ -107,10 +74,56 @@ bool ast_type_is_pp_number(ast_type* value) {
     return ast_type_primitive_is_number(value->u_primitive); 
 }
 
+bool ast_type_is_pp_integer(ast_type* value) { 
+    if (!ast_type_is_pp(value)) return false;
+    return ast_type_primitive_is_integer(value->u_primitive); 
+}
+
 bool ast_type_is_pp_boolean(ast_type* value) { 
     if (!ast_type_is_pp(value)) return false; 
     return ast_type_primitive_is_boolean(value->u_primitive); 
 }
+
+
+/**
+ * Advanced type comparison function
+ * which ensures that a value of given type
+ * can be assigned to a variable of specified type
+ * without truncation or precision loss
+ * 
+ * @param[in] assignee The variable
+ * @param[in] value The value to be checked for being suitable
+ */
+#define merged_assignee_is(range) (primitive_index_in_range(i_assignee, range))
+#define merged_value_is(range)    (primitive_index_in_range(i_value, range))
+
+    bool ast_type_can_assign(ast_type* assignee, ast_type* value) {
+        if (ast_type_is_equal(assignee, value)) {
+            return true;
+        }
+
+        if (ast_type_is_pp_number(assignee) && ast_type_is_pp_number(value)) {
+            index_t i_assignee = ast_type_primitive_get_index(assignee->u_primitive);
+            index_t i_value = ast_type_primitive_get_index(value->u_primitive);
+
+            if (merged_assignee_is(INTEGER)  && merged_value_is(FLOATING)) {
+                return false;
+            }
+            if (merged_assignee_is(UNSIGNED) && merged_value_is(SIGNED)) {
+                return false;
+            }
+            if (assignee->u_primitive->capacity <= value->u_primitive->capacity) {
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+#undef merged_assignee_is
+#undef merged_value_is
 
 
 /**
@@ -135,70 +148,61 @@ bool ast_type_is_pp_boolean(ast_type* value) {
  * 
  * @return(can_merge) true if the types are compatible
  */
-ast_type* ast_type_merge_prioritized(ast_type* a, ast_type* b) {
-    return ast_type_can_merge(a, b) ? a : NULL;
-}
+#define merged_a_is(range) (primitive_index_in_range(i_a, range))
+#define merged_b_is(range) (primitive_index_in_range(i_b, range))
+#define merge_swap()       { ast_type* tmp = a; a = b; b = tmp; }
 
-ast_type* ast_type_merge_extend(ast_type* a, ast_type* b) {
-    if (ast_type_is_equal(a, b)) {
-        return a;
+    bool ast_type_can_merge(ast_type* a, ast_type* b) {
+        return ast_type_merge_extend(a, b) != NULL;
     }
 
-    /* number implicit casting */
-    if (ast_type_is_pp_number(a) && ast_type_is_pp_number(b)) {
-        int a_index = ast_type_get_primitive_index(a->u_primitive);
-        int b_index = ast_type_get_primitive_index(b->u_primitive);
+    ast_type* ast_type_merge_extend(ast_type* a, ast_type* b) {
+        if (ast_type_is_equal(a, b)) {
+            return a;
+        }
 
-         /** @todo ast_type_is_integer() */
+        if (ast_type_is_pp_number(a) && ast_type_is_pp_number(b)) {
+            index_t i_a = ast_type_primitive_get_index(a->u_primitive);
+            index_t i_b = ast_type_primitive_get_index(b->u_primitive);
 
-        /* if both types are integer/float, find the bigger one */
-        if ((a_index <  PRIMITIVE_INDEX_FLOAT && b_index <  PRIMITIVE_INDEX_FLOAT) ||
-            (a_index >= PRIMITIVE_INDEX_FLOAT && b_index >= PRIMITIVE_INDEX_FLOAT)) {
-            if (a->u_primitive->size > b->u_primitive->size) {
-                return a;
-            } else if (a->u_primitive->size < b->u_primitive->size) {
-                return b;
-            } 
-        } else {
-            if (a_index > PRIMITIVE_INDEX_FLOAT) {
-                /* a is a float */
-
-                /* halven the size to simplify computations */
-                int f_capacity = a->u_primitive->size / 2;
-
-                if (b->u_primitive->size > f_capacity) {
-                        /* integer is too big, explicit cast required */
-                    /* case INT(4)/LONG(8) > FLOAT(2)  */
-                    /* case LONG(8)        > DOUBLE(4) */
-                    return NULL;
-                } else {
-                        /* float can contain the integer */
-                    /* case BYTE(1)/SHORT(2) <= FLOAT(2)/DOUBLE(4) */
-                    /* case INT(4)           <= DOUBLE(4)          */
-                    return a;
-                }
-            } else {
-                /* b is a float */
-
-                /* do the same */
-                int f_capacity = b->u_primitive->size / 2;
-                if (a->u_primitive->size > f_capacity) {
-                    return NULL;
-                } else {
-                    return b;
+            /* A is always promoted to B */
+            {
+                /* swap cases */
+                if (merged_a_is(FLOATING)  && merged_b_is(INTEGER))  merge_swap();
+                if (merged_a_is(SIGNED)    && merged_b_is(UNSIGNED)) merge_swap();
+            }
+            
+            /* re-cast A to match the type of B if needed */
+            int recast_range_start = 0;
+            int recast_range_end   = 0;
+            if (merged_a_is(UNSIGNED) && merged_b_is(SIGNED)) {
+                recast_range_start = primitive_index_min_range(SIGNED);
+                recast_range_end   = primitive_index_min_range(SIGNED);
+            }
+            if (merged_a_is(INTEGER)  && merged_b_is(FLOATING)) {
+                recast_range_start = primitive_index_min_range(FLOATING);
+                recast_range_end   = primitive_index_min_range(FLOATING);
+            }
+            iterate_range_single(i, recast_range_start, recast_range_end) {
+                if (primitive_list.data[i].capacity >= a->u_primitive->capacity) {
+                    a = ast_type_new(AST_TYPE_PRIMITIVE, &primitive_list.data[i]);
                 }
             }
+
+            /* straightforward upcasting by capacity */
+            if (a->u_primitive->capacity > b->u_primitive->capacity) {
+                return a;
+            } else {
+                return b;
+            }
         }
+
+        return NULL;
     }
 
-    return NULL;
-}
-
-bool ast_type_can_merge(ast_type* a, ast_type* b) {
-    /** @todo advanced can_merge check based on extend merge */
-    return ast_type_is_equal(a, b) || (ast_type_is_pp_number(a) && ast_type_is_pp_number(b));
-}
-
+#undef merged_a_is
+#undef merged_b_is
+#undef merge_swap
 
 /**
  * Simple deep type comparison
@@ -220,3 +224,11 @@ bool ast_type_is_equal(ast_type* a, ast_type* b) {
 
     return true;
 }
+
+/**
+ * TODO:
+ * 
+ * Full refactor of (at least) the primitive type and constant expression modules
+ * 
+ * Make use of Kotlin script code generation for Primitive type system (make several lists, sort them by capacity and then sort them by SPECIAL-ORDER)
+ */

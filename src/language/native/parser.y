@@ -312,7 +312,7 @@ type_specifier
 	| DOUBLE { $$ = ast_type_of_primitive(PRIMITIVE_INDEX_DOUBLE); 	}
 	| SIGNED
 	| UNSIGNED
-	| BOOL   { $$ = ast_type_of_primitive(PRIMITIVE_INDEX_BOOL); }
+	| BOOL   { $$ = ast_type_of_primitive(PRIMITIVE_INDEX_BOOLEAN); }
 	| COMPLEX
 	| IMAGINARY	  	/* non-mandated extension */
 	| atomic_type_specifier

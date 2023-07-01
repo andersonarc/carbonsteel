@@ -17,7 +17,7 @@
  * Parser context level kind string values
  */
 const char* se_context_level_kind_strings[] = {
-    "GLOBAL", "IMPORT", "FUNCTION", "EXPRESSION", "ENUM"
+    "GLOBAL", "IMPORT", "FUNCTION", "EXPRESSION", "ENUM", "FLAG"
 };
 
     /* functions */
@@ -54,7 +54,7 @@ void context_enter(se_context* context, se_context_level_kind kind) {
     /* initialize the level value */
     switch (kind) {
         case SCTX_EXPRESSION:
-            arl_init_empty(ex_constructor_ptr, level.u_ex_block.constructors);
+            arraylist_init_empty(ex_constructor_ptr)(&level.u_ex_block.constructors);
             break;
 
         case SCTX_FUNCTION:
@@ -64,6 +64,11 @@ void context_enter(se_context* context, se_context_level_kind kind) {
         case SCTX_ENUM:
             level.u_enum_context.value = allocate(dc_enum);
             level.u_enum_context.member_index = 0;
+            level.u_enum_context.kind = ENUM_KIND_UNKNOWN;
+            break;
+
+        case SCTX_FLAG:
+            flag_context_init(level.u_flag_context);
             break;
 
         case SCTX_IMPORT:

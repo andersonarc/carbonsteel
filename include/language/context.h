@@ -19,6 +19,8 @@
 #include "ast/declaration.h" /* ast declaration type */
 #include "ast/root.h" /* ast root type */
 
+#include "ctool/type/bitset.h" /* bitset type */
+
     /* global variables */
 /**
  * Parser context level kind string values
@@ -39,11 +41,44 @@ struct ex_block {
 /**
  * Enum context structure
  * that tracks the element index and enum value
+ * 
+ * If an enum has implicit values defined,
+ * than it cannot have explicit values and vice versa,
+ * because it may lead to value conflicts.
  */
+typedef enum enum_context_kind {
+    ENUM_KIND_UNKNOWN,
+    ENUM_KIND_IMPLICIT,
+    ENUM_KIND_EXPLICIT
+} enum_context_kind;
+
 struct enum_context {
     dc_enum* value;
-    int member_index;
+    size_t member_index;
+    enum_context_kind kind;
 };
+
+/**
+ * Context level which is a bitset structure
+ * with the following flags:
+ * 
+ * [] is the default value
+ * 
+ *  0) [signed]/unsigned (only for integers) 
+ * 
+ * @param[in] this The flag context level
+ * 
+ * @note What is important about the flag context is the fact that
+ *        it is not mandatory to be set and is exited from by the called function
+ *        (not the caller function as you would expect with other kinds of contexts)
+ */
+bitset_declare(1);
+typedef uint8_t_bitset_t flag_context;
+#define flag_context_init(this)         bitset_init(this)
+#define flag_context_set_signed(this)   bitset_clear(this, 0)
+#define flag_context_set_unsigned(this) bitset_set(this, 0)
+#define flag_context_if_signed(this)    bitset_if_not_set(this, 0)
+#define flag_context_if_unsigned(this)  bitset_if_set(this, 0)
 
 /**
  * Parser context level kind
@@ -51,9 +86,8 @@ struct enum_context {
 typedef enum se_context_level_kind {
     SCTX_GLOBAL,
     SCTX_IMPORT, SCTX_FUNCTION, SCTX_EXPRESSION,
-    SCTX_ENUM
+    SCTX_ENUM, SCTX_FLAG
 } se_context_level_kind;
-
 
 /**
  * Parser context level structure
@@ -64,10 +98,10 @@ typedef struct se_context_level {
         arraylist(ast_local_declaration) u_locals; /* in SCTX_FUNCTION   */
         ex_block u_ex_block;                       /* in SCTX_EXPRESSION */
         enum_context u_enum_context;               /* in SCTX_ENUM       */
+        flag_context u_flag_context;               /* in SCTX_FLAG       */
     };
 } se_context_level;
 arraylist_declare(se_context_level);
-
 
 /**
  * Parser context structure
@@ -86,7 +120,6 @@ typedef struct se_context {
  */
 se_context* context_new();
 
-
 /**
  * Add a new context level
  * on top of the context stack
@@ -95,7 +128,6 @@ se_context* context_new();
  * @param kind    Kind of the context level
  */
 void context_enter(se_context* context, se_context_level_kind kind);
-
 
 /**
  * Returns the last context stack level
@@ -109,7 +141,6 @@ void context_enter(se_context* context, se_context_level_kind kind);
  */
 se_context_level* context_get(se_context* context, se_context_level_kind kind);
 
-
 /**
  * Returns the current context level
  * 
@@ -118,7 +149,6 @@ se_context_level* context_get(se_context* context, se_context_level_kind kind);
 static inline se_context_level* context_current(se_context* context) {
     return &arraylist_last(context->stack);
 }
-
 
 /**
  * Checks if the current context
@@ -131,7 +161,6 @@ static inline bool context_is(se_context* context, se_context_level_kind kind)  
     return context_current(context)->kind == kind;
 }
 
-
 /**
  * Finds a last occurence of a specified
  * level kind in the context stack and
@@ -141,7 +170,6 @@ static inline bool context_is(se_context* context, se_context_level_kind kind)  
  * @param[in] kind    The kind to search for
  */
 se_context_level* context_find(se_context* context, se_context_level_kind kind);
-
 
 /**
  * Removes the last context level and

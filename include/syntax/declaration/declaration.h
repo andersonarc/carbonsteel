@@ -38,6 +38,7 @@ struct dc_structure {
     char* name;
     list(dc_structure_member) member_list;
 };
+
 struct dc_structure_member {
     char* name;
     ast_type type;
@@ -52,9 +53,10 @@ struct dc_enum {
     char* name;
     list(dc_enum_member) member_list;
 };
+
 struct dc_enum_member {
     char* name;
-    ex_number value;
+    ex_constant value;
     dc_enum* parent;
 };
 
@@ -81,10 +83,12 @@ struct dc_function_parameter {
     char* name;
     ast_type type;
 };
+
 struct dc_function_parameters {
     list(dc_function_parameter) value;
     bool is_c_vararg;
 };
+
 struct dc_function {
     char* name;
     bool is_extern;
@@ -116,6 +120,7 @@ enum declaration_kind {
     DC_IMPORT, DC_ALIAS, DC_STRUCTURE,
     DC_ENUM, DC_FUNCTION, DC_ST_VARIABLE
 };
+
 struct declaration {
     declaration_kind kind;
     union {

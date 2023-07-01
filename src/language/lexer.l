@@ -27,10 +27,6 @@ AN     [a-zA-Z_0-9]
 EXP    ([Ee][+-]?{DEC}+)
 HEXP   ([Pp][+-]?{DEC}+)
 
-    /* float and int suffix */
-FSUFF  (f|F|l|L)
-ISUFF  (((u|U)(l|L|ll|LL)?)|((l|L|ll|LL)(u|U)?))
-
     /* character, string and hex number prefix */
 CPREF  (u|U|L)
 SPREF  (u8|u|U|L)
@@ -102,6 +98,8 @@ WS     [ \t\v\f]
 "return"				{ return TOKEN_RETURN;   }
 "break"					{ return TOKEN_BREAK;    }
 
+"unsigned"              { return TOKEN_UNSIGNED; }
+
     /* boolean constants */
 "false"                     { 
                                 yylval_param->TOKEN_FALSE = false;
@@ -118,19 +116,19 @@ WS     [ \t\v\f]
 
 
     /* integer constants */
-{HPREF}{HEX}+{ISUFF}?		{ 
-                                yylval_param->TOKEN_INT_CONSTANT = strtol(yytext, NULL, 16);   
-                                return TOKEN_INT_CONSTANT; 
+{HPREF}{HEX}+		        { 
+                                yylval_param->TOKEN_LONG_CONSTANT = strtol(yytext, NULL, 16);   
+                                return TOKEN_LONG_CONSTANT; 
                             }
 
-{DEC_NZ}{DEC}*{ISUFF}?	    { 
-                                yylval_param->TOKEN_INT_CONSTANT = strtol(yytext, NULL, 10);   
-                                return TOKEN_INT_CONSTANT; 
+{DEC_NZ}{DEC}*	            { 
+                                yylval_param->TOKEN_LONG_CONSTANT = strtol(yytext, NULL, 10);   
+                                return TOKEN_LONG_CONSTANT; 
                             }
 
-"0"{OCT}*{ISUFF}?			{ 
-                                yylval_param->TOKEN_INT_CONSTANT = strtol(yytext, NULL, 8);
-                                return TOKEN_INT_CONSTANT; 
+"0"{OCT}*			        { 
+                                yylval_param->TOKEN_LONG_CONSTANT = strtol(yytext, NULL, 8);
+                                return TOKEN_LONG_CONSTANT; 
                             }
 
 
@@ -142,44 +140,44 @@ WS     [ \t\v\f]
 
 
     /* decimal float constants */
-{DEC}+{EXP}{FSUFF}?			        { 
-                                        yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
-                                        return TOKEN_FLOAT_CONSTANT; 
+{DEC}+{EXP} 		                { 
+                                        yylval_param->TOKEN_DOUBLE_CONSTANT = strtod(yytext, NULL);
+                                        return TOKEN_DOUBLE_CONSTANT; 
                                     }
 
-{DEC}*"."{DEC}+{EXP}?{FSUFF}?		{ 
-                                        yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
-                                        return TOKEN_FLOAT_CONSTANT; 
+{DEC}*"."{DEC}+{EXP}?		        { 
+                                        yylval_param->TOKEN_DOUBLE_CONSTANT = strtod(yytext, NULL);
+                                        return TOKEN_DOUBLE_CONSTANT; 
                                     }
 
-{DEC}+"."{DEC}*{EXP}?{FSUFF}?		{ 
-                                        yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
-                                        return TOKEN_FLOAT_CONSTANT; 
+{DEC}+"."{DEC}*{EXP}?		        { 
+                                        yylval_param->TOKEN_DOUBLE_CONSTANT = strtod(yytext, NULL);
+                                        return TOKEN_DOUBLE_CONSTANT; 
                                     }
 
 
     /* hexadecimal float constants */
-{HPREF}{HEX}+{HEXP}{FSUFF}?			    { 
-                                            yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
-                                            return TOKEN_FLOAT_CONSTANT; 
-                                        }
+{HPREF}{HEX}+{HEXP}			        { 
+                                        yylval_param->TOKEN_DOUBLE_CONSTANT = strtod(yytext, NULL);
+                                        return TOKEN_DOUBLE_CONSTANT; 
+                                    }
 
-{HPREF}{HEX}*"."{HEX}+{HEXP}{FSUFF}?    { 
-                                            yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
-                                            return TOKEN_FLOAT_CONSTANT;
-                                        }
+{HPREF}{HEX}*"."{HEX}+{HEXP}        { 
+                                        yylval_param->TOKEN_DOUBLE_CONSTANT = strtod(yytext, NULL);
+                                        return TOKEN_DOUBLE_CONSTANT;
+                                    }
 
-{HPREF}{HEX}+"."{HEX}*{HEXP}{FSUFF}?	{ 
-                                            yylval_param->TOKEN_FLOAT_CONSTANT = strtof(yytext, NULL);
-                                            return TOKEN_FLOAT_CONSTANT;
-                                        }
+{HPREF}{HEX}+"."{HEX}*{HEXP}	    { 
+                                        yylval_param->TOKEN_DOUBLE_CONSTANT = strtod(yytext, NULL);
+                                        return TOKEN_DOUBLE_CONSTANT;
+                                    }
 
 
     /* string literal */
-{SPREF}?\"([^"\\\n]|{CHR})*\"	        { 
-                                            yylval_param->TOKEN_STRING_LITERAL = copy_string(yytext);
-                                            return TOKEN_STRING_LITERAL;
-                                        }
+{SPREF}?\"([^"\\\n]|{CHR})*\"	    { 
+                                        yylval_param->TOKEN_STRING_LITERAL = copy_string(yytext);
+                                        return TOKEN_STRING_LITERAL;
+                                    }
 
 
     /* assignment operators */

@@ -8,7 +8,7 @@
  */
     /* header guard */
 #ifndef CARBONSTEEL_LANGUAGE_PARSER_H
-#define CARBONSTEEL_LANGUAGE_LCARBONSTEEL_LANGUAGE_PARSER_HEXER_H
+#define CARBONSTEEL_LANGUAGE_PARSER_H
 
     /* includes */
 #include "main_parser.h"

@@ -49,8 +49,8 @@
  */
     /* invocation */
 #define inherit_extern(ex_type, action_name, ex, value)                     \
-    ex_##ex_type##_inherit_data_on_##action_name(&ex.data, value);          \
     ex.properties = allocate(expression_properties);                        \
+    ex_##ex_type##_inherit_data_on_##action_name(&ex.data, value);          \
     ex_##ex_type##_inherit_properties_on_##action_name(ex.properties, value);
 
     /* declaration */
@@ -83,8 +83,8 @@
  */
     /* invocation */
 #define inherit_expression(ex_type, parent_ex_type, ex, parent_ex)                 \
-    ex_##ex_type##_inherit_data_on_ex_##parent_ex_type(&ex.data, &parent_ex.data); \
     ex.properties = parent_ex.properties;                                          \
+    ex_##ex_type##_inherit_data_on_ex_##parent_ex_type(&ex.data, &parent_ex.data); \
     ex_##ex_type##_inherit_properties_on_ex_##parent_ex_type(ex.properties);
 
     /* declaration */
@@ -115,6 +115,7 @@
  * @param[in] parent_ex The parent expression value
  */
 #define inherit_self(ex_type, action_name, ex, parent_ex)                                   \
+    ex.properties = parent_ex.properties; /* todo hotfix, could be invalid */               \
     ex_##ex_type##_inherit_data_on_##action_name(&ex.data, &parent_ex.data);                \
     ex_##ex_type##_inherit_properties_on_##action_name(ex.properties, parent_ex.properties);
 

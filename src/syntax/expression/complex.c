@@ -52,6 +52,24 @@ properties_self_inheritance_with_ex_and_ex(condition, condition, condition, if_b
     iset_type(merge) {
         this->type = *tmp;
     }
+
+    iset_inherit_constant(conditional) irequire_constant()(condition) irequire_constant()(if_branch) {
+        switch (condition->constant.kind) {
+            case EX_C_BOOLEAN:
+                if (condition->constant.u_boolean) {
+                    this->constant = if_branch->constant; //todo is it correct?
+                } else {
+                    this->constant = parent->constant;
+                }
+                break;
+            otherwise_error
+        }
+    }
+
+    //todo
+    iset_constant(stub) {
+        ex_constant_dynamic(&this->constant);
+    }
 }
 
     /* {DATA} COMPLEX <-< CONDITION */
@@ -83,5 +101,10 @@ properties_self_inheritance_with_ex_and(expression, assignment, assignee, op_ass
                             op_assign_strings[operator], 
                             ast_type_to_string(&assignee->type));
         }
+    }
+
+    //todo support this for constant expressions
+    iset_constant(stub) {
+        ex_constant_dynamic(&this->constant);
     }
 }

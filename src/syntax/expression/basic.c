@@ -22,7 +22,7 @@ iapi_init_union_from_extern(B, basic, dc_st_variable*, VARIABLE, variable) {
     }
     iset_constant(origin) {
         ex_constant_reference(&this->constant, &value->value.value->properties->constant);
-    }
+    }//todo remove the origin-track system
 }
 
     /* {PROPERTIES} BASIC << FUNCTION */

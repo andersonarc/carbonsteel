@@ -12,6 +12,7 @@
 #define CARBONSTEEL_SYNTAX_EXPRESSION_OPERATOR_H
 
     /* includes */
+#include "syntax/predeclaration.h"
 #include "misc/list.h" /* list utilities */
 
     /* global variables */
@@ -40,6 +41,7 @@ typedef enum op_unary {
     OP_U_BINARY_NOT,
     OP_U_LOGIC_NOT
 } op_unary;
+arraylist_declare_functions(op_unary);
 
 
 /**

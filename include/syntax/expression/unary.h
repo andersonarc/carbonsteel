@@ -117,6 +117,7 @@ enum ex_postfix_level_kind {
     EX_PL_INDEX, EX_PL_INVOCATION,
     EX_PL_PROPERTY, EX_PL_POINTER_PROPERTY
 };
+arraylist_declare_functions(ex_postfix_level_kind);
 
 struct ex_postfix_level {
     ex_postfix_level_kind kind;
@@ -127,6 +128,7 @@ struct ex_postfix_level {
         dc_structure_member* u_pointer_property; /* for macro compatibility */
     };
 };
+arraylist_declare_functions(ex_postfix_level);
 
 
 enum ex_postfix_kind {
@@ -212,6 +214,7 @@ struct ex_cast_data {
 };
 
 declare_expression(cast);
+arraylist_declare_functions(ex_cast);
 expression_inheritance(cast, unary);
 self_inheritance_with(cast, cast, ast_type);
 

@@ -24,9 +24,8 @@
  * @param[in] name Name of the structure
  */
 #define d_struct(name)   typedef struct name name
-#define da_struct(name)  d_struct(name); arraylist_declare(name)
+#define da_struct(name)  d_struct(name); arraylist_declare_type(name)
 #define dl_struct(name)  d_struct(name); list_declare(name)
-#define dla_struct(name) d_struct(name); arraylist_declare(name)
 
 /**
  * Enum declaration macro
@@ -34,7 +33,7 @@
  * @param[in] name Name of the enum
  */
 #define d_enum(name)  typedef enum name name
-#define da_enum(name) d_enum(name); arraylist_declare(name)
+#define da_enum(name) d_enum(name); arraylist_declare_type(name)
 #define dl_enum(name) d_enum(name); list_declare(name)
 
 /**
@@ -45,7 +44,6 @@
 #define d_pointer(name)   typedef name* name##_ptr
 #define da_pointer(name)  d_pointer(name); arraylist_declare(name##_ptr)
 #define dl_pointer(name)  d_pointer(name); list_declare(name##_ptr)
-#define dla_pointer(name) d_pointer(name); arraylist_declare(name##_ptr)
 
 /**
  * Alias declaration macro
@@ -54,9 +52,8 @@
  * @param[in] target Target of the alias
  */
 #define d_alias(name, target)   typedef target name
-#define da_alias(name, target)  d_alias(name, target); arraylist_declare(name)
+#define da_alias(name, target)  d_alias(name, target); arraylist_declare_type(name)
 #define dl_alias(name, target)  d_alias(name, target); list_declare(name)
-#define dla_alias(name, target) d_alias(name, target); arraylist_declare(name)
 
             /* typedefs */
 
@@ -81,20 +78,21 @@ d_struct(dc_alias);
 
     /* enum */
 d_struct(dc_enum);
-    dla_struct(dc_enum_member);
+    da_struct(dc_enum_member);
     d_struct(enum_context);
 
     /* structure */
 d_struct(dc_structure);
-    dla_struct(dc_structure_member);
+    da_struct(dc_structure_member);
 
     /* function */
 d_struct(dc_function);
     d_struct(dc_function_parameters);
-    dla_struct(dc_function_parameter);
+    da_struct(dc_function_parameter);
 
     /* import */
-dla_alias(dc_import_node, char*);
+da_alias(dc_import_node, char*);
+arraylist_declare_functions(dc_import_node);
     d_alias(dc_import, list(dc_import_node));
 
     /* declaration */
@@ -162,7 +160,7 @@ d_struct(ex_expression);
     d_alias(expression, ex_expression);
     d_struct(expression_data);
     d_alias(ex_expression_data, expression_data);
-    dla_pointer(expression);
+    da_pointer(expression);
 
     /* block */
 d_struct(ex_block);
@@ -189,7 +187,7 @@ d_struct(dc_st_variable);
 
 d_alias(st_expression, ex_block);
 
-dla_struct(st_compound_item);
+da_struct(st_compound_item);
     d_alias(st_compound, list(st_compound_item));
 
 #endif /* CARBONSTEEL_SYNTAX_PREDECLARATION_H */

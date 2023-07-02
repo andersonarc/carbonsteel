@@ -50,6 +50,7 @@
  */
     /* invocation */
 #define inherit_self_with(ex_type, action_name, ex, parent_ex, argument)                              \
+    ex.properties = parent_ex.properties; /* todo hotfix, could be invalid */                         \
     ex_##ex_type##_inherit_data_on_##action_name(&ex.data, &parent_ex.data, argument);                \
     ex_##ex_type##_inherit_properties_on_##action_name(ex.properties, parent_ex.properties, argument);
 
@@ -82,6 +83,7 @@
  */
     /* invocation */
 #define inherit_self_with_ex(ex_type, action_name, ex, parent_ex, argument_ex)                                     \
+    ex.properties = parent_ex.properties; /* todo hotfix, could be invalid */                                      \
     ex_##ex_type##_inherit_data_on_##action_name(&ex.data, &parent_ex.data, &argument_ex.data);                    \
     ex_##ex_type##_inherit_properties_on_##action_name(ex.properties, parent_ex.properties, argument_ex.properties);
 
@@ -115,6 +117,7 @@
  */
     /* invocation */
 #define inherit_self_with_ex_and(ex_type, action_name, ex, parent_ex, argument_ex, argument)                                  \
+    ex.properties = parent_ex.properties; /* todo hotfix, could be invalid */                                                 \
     ex_##ex_type##_inherit_data_on_##action_name(&ex.data, &parent_ex.data, &argument_ex.data, argument);                     \
     ex_##ex_type##_inherit_properties_on_##action_name(ex.properties, parent_ex.properties, argument_ex.properties, argument);
 
@@ -149,6 +152,7 @@
  */
     /* invocation */
 #define inherit_self_with_ex_and_ex(ex_type, action_name, ex, parent_ex, argument_ex_1, argument_ex_2)                                         \
+    ex.properties = parent_ex.properties; /* todo hotfix, could be invalid */                                                                  \
     ex_##ex_type##_inherit_data_on_##action_name(&ex.data, &parent_ex.data, &argument_ex_1.data, &argument_ex_2.data);                         \
     ex_##ex_type##_inherit_properties_on_##action_name(ex.properties, parent_ex.properties, argument_ex_1.properties, argument_ex_2.properties);
 
@@ -188,6 +192,7 @@
  */
     /* invocation */
 #define inherit_self_with_before(ex_type, action_name, ex, parent, parameter_type, argument)                 \
+    ex.properties = parent.properties; /* todo hotfix, could be invalid */                                   \
     parameter_type _computed_argument;                                                                       \
     ex_##ex_type##_inherit_before_on_##action_name(parent.properties, &_computed_argument, argument);        \
     ex_##ex_type##_inherit_data_on_##action_name(&ex.data, &parent.data, _computed_argument);                \

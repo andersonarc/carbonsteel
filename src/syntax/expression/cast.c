@@ -96,7 +96,7 @@ properties_self_inheritance_with(cast, cast, ast_type type) {
     iset_type(parameter) {
         this->type = type;
     }
-    iset_constant(cast) {
+    iset_inherit_constant(cast) {
         ex_constant_reinterpret_cast(&this->constant, &parent->constant, &type);
     }
 }

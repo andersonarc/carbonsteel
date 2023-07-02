@@ -14,7 +14,6 @@
 #include "ast/root.h" /* abstract syntax tree */
 #include "syntax/statement/statement.h" /* statements */
 #include "syntax/declaration/declaration.h" /* declarations */
-#include "misc/convert.h" /* conversion functions */
 #include "misc/memory.h" /* memory allocation */
 
     /* defines */

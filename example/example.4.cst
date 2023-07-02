@@ -1,12 +1,11 @@
-import foo.bar.baz;
-import a;
+import stdio;
 
 alias size_t = int;
 
 enum buffer_state_t {
     WRITE = false, 
-    READ = 0.1,
-    NONE = -1
+    READ = 0,
+    NONE = 1
 };
 
 type buffer_t {
@@ -23,7 +22,7 @@ void bwrite(buffer_t* buffer) {
     int index = 0;
     double coefficient = 3.14;
     while (index < buffer->size) {
-        buffer->data[index] = index + coefficient;
+        buffer->data[index] = (index + coefficient) as (byte);
 
 
         index++;

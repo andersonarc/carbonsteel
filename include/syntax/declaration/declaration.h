@@ -43,6 +43,7 @@ struct dc_structure_member {
     char* name;
     ast_type type;
 };
+arraylist_declare_functions(dc_structure_member);
 
 
 /**
@@ -59,6 +60,7 @@ struct dc_enum_member {
     ex_constant value;
     dc_enum* parent;
 };
+arraylist_declare_functions(dc_enum_member);
 
 
 /**
@@ -83,6 +85,7 @@ struct dc_function_parameter {
     char* name;
     ast_type type;
 };
+arraylist_declare_functions(dc_function_parameter);
 
 struct dc_function_parameters {
     list(dc_function_parameter) value;
@@ -134,6 +137,7 @@ struct declaration {
         dc_st_variable* u_variable;
     };
 };
+arraylist_declare_functions(declaration);
 
 
     /* functions */

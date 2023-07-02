@@ -140,6 +140,7 @@ bool ast_type_is_pp_boolean(ast_type* value) {
  * to the bigger type, so truncation is impossible
  * 
  * @todo Remove [prioritized] merges, use a workaround for constant expressions
+ * @todo make constant expression type inference compliant with this function
  * 
  * @param[in] a Pointer to the first type
  * @param[in] b Pointer to the second type

@@ -27,344 +27,236 @@
 #ifndef CARBONSTEEL_SYNTAX_EXPRESSION_CONSTANT_BINARY
 #define CARBONSTEEL_SYNTAX_EXPRESSION_CONSTANT_BINARY
 
-#define ex_constant_inherit_binary_boolean(this, parent1, operation, parent2) \
-switch (parent1.kind) { \
-	case EX_C_BOOLEAN: switch (parent2.kind) { \
-		case EX_C_BOOLEAN: this.u_boolean = (parent1.u_boolean) operation (parent2.u_boolean); break; \
-		otherwise_error \
-	} \
-	otherwise_error \
-}
+#define _ex_constant_upcast(resultant, resultant_upper, lower2, upper, lower1, this, parent1, operation, parent2) \
+case EX_C_##upper:																\
+	this.u_##resultant = (parent1.u_##lower1) operation (parent2.u_##lower2); 	\
+	this.kind = EX_C_##resultant_upper;											\
+	break;
 
 
-#define ex_constant_inherit_binary_all(this, parent1, operation, parent2) \
-switch (parent1.kind) { \
-	case EX_C_BOOLEAN: switch (parent2.kind) { \
-		case EX_C_BOOLEAN: this.u_boolean = (parent1.u_boolean) operation (parent2.u_boolean); break; \
-		otherwise_error \
-	} \
-	case EX_C_BYTE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_byte = (parent1.u_byte) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_byte) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_byte) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_byte) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_short = (parent1.u_byte) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_byte) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_byte) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_byte) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_byte) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_SHORT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_short = (parent1.u_short) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_short) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_short) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_short) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_short = (parent1.u_short) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_short) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_short) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_short) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_short) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_INT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_int = (parent1.u_int) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_int = (parent1.u_int) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_int) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_int) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_int = (parent1.u_int) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_int) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_int) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_double = (parent1.u_int) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_int) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_LONG: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_long = (parent1.u_long) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_long = (parent1.u_long) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_long = (parent1.u_long) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_long) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_long = (parent1.u_long) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_long = (parent1.u_long) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_long) operation (parent2.u_uint); break; \
-		otherwise_error \
-	} \
-	case EX_C_UBYTE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_short = (parent1.u_ubyte) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_ubyte) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_short = (parent1.u_ubyte) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_short = (parent1.u_ubyte) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_ubyte = (parent1.u_ubyte) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ushort = (parent1.u_ubyte) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_ubyte) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ubyte) operation (parent2.u_ulong); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_ubyte) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_ubyte) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_USHORT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_int = (parent1.u_ushort) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_int = (parent1.u_ushort) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_ushort) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_int = (parent1.u_ushort) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_ushort = (parent1.u_ushort) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ushort = (parent1.u_ushort) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_ushort) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ushort) operation (parent2.u_ulong); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_ushort) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_ushort) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_UINT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_long = (parent1.u_uint) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_long = (parent1.u_uint) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_long = (parent1.u_uint) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_uint) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_uint = (parent1.u_uint) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_uint = (parent1.u_uint) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_uint) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_uint) operation (parent2.u_ulong); break; \
-		case EX_C_FLOAT: this.u_double = (parent1.u_uint) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_uint) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_ULONG: switch (parent2.kind) { \
-		case EX_C_UBYTE: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_ulong = (parent1.u_ulong) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ulong); break; \
-		otherwise_error \
-	} \
-	case EX_C_FLOAT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_float = (parent1.u_float) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_float = (parent1.u_float) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_double = (parent1.u_float) operation (parent2.u_int); break; \
-		case EX_C_UBYTE: this.u_float = (parent1.u_float) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_float = (parent1.u_float) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_double = (parent1.u_float) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_float) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_float) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_DOUBLE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_double = (parent1.u_double) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_double = (parent1.u_double) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_double = (parent1.u_double) operation (parent2.u_int); break; \
-		case EX_C_UBYTE: this.u_double = (parent1.u_double) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_double = (parent1.u_double) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_double = (parent1.u_double) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_double = (parent1.u_double) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_double) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	otherwise_error \
-}
 
+/** NUMERICAL OPERATIONS **/
+#define _ex_constant_intconvertcase(upper, lower, this, parent1, operation, parent2) 			\
+case EX_C_##upper: switch (parent2.kind) {														\
+		_ex_constant_upcast(int, INT, byte, BYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(int, INT, short, SHORT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(int, INT, int, INT, lower, this, parent1, operation, parent2); 			\
+		_ex_constant_upcast(long, LONG, long, LONG, lower, this, parent1, operation, parent2); 		\
+		\
+		_ex_constant_upcast(uint, UINT, ubyte, UBYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, ushort, USHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(uint, UINT, uint, UINT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(ulong, ULONG, ulong, ULONG, lower, this, parent1, operation, parent2);		\
+		\
+		_ex_constant_upcast(float, FLOAT, float, FLOAT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(double, DOUBLE, double, DOUBLE, lower, this, parent1, operation, parent2); 	\
+		otherwise_error \
+} break;
+
+#define _ex_constant_uintconvertcase(upper, lower, this, parent1, operation, parent2) 			\
+case EX_C_##upper: switch (parent2.kind) {														\
+		_ex_constant_upcast(uint, UINT, byte, BYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, short, SHORT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, int, INT, lower, this, parent1, operation, parent2); 			\
+		_ex_constant_upcast(ulong, ULONG, long, LONG, lower, this, parent1, operation, parent2); 		\
+		\
+		_ex_constant_upcast(uint, UINT, ubyte, UBYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, ushort, USHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(uint, UINT, uint, UINT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(ulong, ULONG, ulong, ULONG, lower, this, parent1, operation, parent2);		\
+		\
+		_ex_constant_upcast(float, FLOAT, float, FLOAT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(double, DOUBLE, double, DOUBLE, lower, this, parent1, operation, parent2); 	\
+		otherwise_error \
+} break;
+
+#define _ex_constant_floatconvertcase(upper, lower, this, parent1, operation, parent2) 			\
+case EX_C_##upper: switch (parent2.kind) {														\
+		_ex_constant_upcast(float, FLOAT, byte, BYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(float, FLOAT, short, SHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(float, FLOAT, int, INT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(float, FLOAT, long, LONG, lower, this, parent1, operation, parent2); 		\
+		\
+		_ex_constant_upcast(float, FLOAT, ubyte, UBYTE, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(float, FLOAT, ushort, USHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(float, FLOAT, uint, UINT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(float, FLOAT, ulong, ULONG, lower, this, parent1, operation, parent2);		\
+		\
+		_ex_constant_upcast(float, FLOAT, float, FLOAT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(double, DOUBLE, double, DOUBLE, lower, this, parent1, operation, parent2); 	\
+		otherwise_error \
+} break;
+
+#define _ex_constant_doubleconvertcase(upper, lower, this, parent1, operation, parent2) 			\
+case EX_C_##upper: switch (parent2.kind) {														\
+		_ex_constant_upcast(double, DOUBLE, byte, BYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(double, DOUBLE, short, SHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(double, DOUBLE, int, INT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(double, DOUBLE, long, LONG, lower, this, parent1, operation, parent2); 		\
+		\
+		_ex_constant_upcast(double, DOUBLE, ubyte, UBYTE, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(double, DOUBLE, ushort, USHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(double, DOUBLE, uint, UINT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(double, DOUBLE, ulong, ULONG, lower, this, parent1, operation, parent2);	\
+		\
+		_ex_constant_upcast(double, DOUBLE, float, FLOAT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(double, DOUBLE, double, DOUBLE, lower, this, parent1, operation, parent2); 	\
+		otherwise_error \
+} break;
 
 #define ex_constant_inherit_binary_numerical(this, parent1, operation, parent2) \
 switch (parent1.kind) { \
-	case EX_C_BYTE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_byte = (parent1.u_byte) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_byte) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_byte) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_byte) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_short = (parent1.u_byte) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_byte) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_byte) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_byte) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_byte) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_SHORT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_short = (parent1.u_short) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_short) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_short) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_short) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_short = (parent1.u_short) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_short) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_short) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_short) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_short) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_INT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_int = (parent1.u_int) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_int = (parent1.u_int) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_int) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_int) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_int = (parent1.u_int) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_int) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_int) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_double = (parent1.u_int) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_int) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_LONG: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_long = (parent1.u_long) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_long = (parent1.u_long) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_long = (parent1.u_long) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_long) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_long = (parent1.u_long) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_long = (parent1.u_long) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_long) operation (parent2.u_uint); break; \
-		otherwise_error \
-	} \
-	case EX_C_UBYTE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_short = (parent1.u_ubyte) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_ubyte) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_short = (parent1.u_ubyte) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_short = (parent1.u_ubyte) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_ubyte = (parent1.u_ubyte) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ushort = (parent1.u_ubyte) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_ubyte) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ubyte) operation (parent2.u_ulong); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_ubyte) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_ubyte) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_USHORT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_int = (parent1.u_ushort) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_int = (parent1.u_ushort) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_ushort) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_int = (parent1.u_ushort) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_ushort = (parent1.u_ushort) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ushort = (parent1.u_ushort) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_ushort) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ushort) operation (parent2.u_ulong); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_ushort) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_float = (parent1.u_ushort) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_UINT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_long = (parent1.u_uint) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_long = (parent1.u_uint) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_long = (parent1.u_uint) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_uint) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_uint = (parent1.u_uint) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_uint = (parent1.u_uint) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_uint) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_uint) operation (parent2.u_ulong); break; \
-		case EX_C_FLOAT: this.u_double = (parent1.u_uint) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_uint) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_ULONG: switch (parent2.kind) { \
-		case EX_C_UBYTE: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_ulong = (parent1.u_ulong) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ulong); break; \
-		otherwise_error \
-	} \
-	case EX_C_FLOAT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_float = (parent1.u_float) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_float = (parent1.u_float) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_double = (parent1.u_float) operation (parent2.u_int); break; \
-		case EX_C_UBYTE: this.u_float = (parent1.u_float) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_float = (parent1.u_float) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_double = (parent1.u_float) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_float = (parent1.u_float) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_float) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
-	case EX_C_DOUBLE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_double = (parent1.u_double) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_double = (parent1.u_double) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_double = (parent1.u_double) operation (parent2.u_int); break; \
-		case EX_C_UBYTE: this.u_double = (parent1.u_double) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_double = (parent1.u_double) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_double = (parent1.u_double) operation (parent2.u_uint); break; \
-		case EX_C_FLOAT: this.u_double = (parent1.u_double) operation (parent2.u_float); break; \
-		case EX_C_DOUBLE: this.u_double = (parent1.u_double) operation (parent2.u_double); break; \
-		otherwise_error \
-	} \
+	_ex_constant_intconvertcase(BYTE, byte, this, parent1, operation, parent2) 		\
+	_ex_constant_intconvertcase(SHORT, short, this, parent1, operation, parent2) 	\
+	_ex_constant_intconvertcase(INT, int, this, parent1, operation, parent2) 		\
+	_ex_constant_intconvertcase(LONG, long, this, parent1, operation, parent2) 		\
+	\
+	_ex_constant_uintconvertcase(UBYTE, ubyte, this, parent1, operation, parent2)	\
+	_ex_constant_uintconvertcase(USHORT, ushort, this, parent1, operation, parent2)	\
+	_ex_constant_uintconvertcase(UINT, uint, this, parent1, operation, parent2)		\
+	_ex_constant_uintconvertcase(ULONG, ulong, this, parent1, operation, parent2)	\
+	\
+	_ex_constant_floatconvertcase(FLOAT, float, this, parent1, operation, parent2)    \
+	_ex_constant_doubleconvertcase(DOUBLE, double, this, parent1, operation, parent2) \
+	\
 	otherwise_error \
 }
 
+
+
+
+
+/** INTEGER-ONLY OPERATIONS **/
+
+#define _ex_constant_intconvertcase_integer(upper, lower, this, parent1, operation, parent2) 			\
+case EX_C_##upper: switch (parent2.kind) {														\
+		_ex_constant_upcast(int, INT, byte, BYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(int, INT, short, SHORT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(int, INT, int, INT, lower, this, parent1, operation, parent2); 			\
+		_ex_constant_upcast(long, LONG, long, LONG, lower, this, parent1, operation, parent2); 		\
+		\
+		_ex_constant_upcast(uint, UINT, ubyte, UBYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, ushort, USHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(uint, UINT, uint, UINT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(ulong, ULONG, ulong, ULONG, lower, this, parent1, operation, parent2);		\
+		\
+		otherwise_error \
+} break;
+
+#define _ex_constant_uintconvertcase_integer(upper, lower, this, parent1, operation, parent2) 			\
+case EX_C_##upper: switch (parent2.kind) {														\
+		_ex_constant_upcast(uint, UINT, byte, BYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, short, SHORT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, int, INT, lower, this, parent1, operation, parent2); 			\
+		_ex_constant_upcast(ulong, ULONG, long, LONG, lower, this, parent1, operation, parent2); 		\
+		\
+		_ex_constant_upcast(uint, UINT, ubyte, UBYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(uint, UINT, ushort, USHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_upcast(uint, UINT, uint, UINT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_upcast(ulong, ULONG, ulong, ULONG, lower, this, parent1, operation, parent2);		\
+		\
+		otherwise_error \
+} break;
 
 #define ex_constant_inherit_binary_integer(this, parent1, operation, parent2) \
 switch (parent1.kind) { \
-	case EX_C_BYTE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_byte = (parent1.u_byte) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_byte) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_byte) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_byte) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_short = (parent1.u_byte) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_byte) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_byte) operation (parent2.u_uint); break; \
+	case EX_C_BOOLEAN: switch (parent2.kind) { \
+		case EX_C_BOOLEAN: this.u_boolean = (parent1.u_boolean) operation (parent2.u_boolean); break; \
 		otherwise_error \
-	} \
-	case EX_C_SHORT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_short = (parent1.u_short) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_short) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_short) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_short) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_short = (parent1.u_short) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_short) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_short) operation (parent2.u_uint); break; \
-		otherwise_error \
-	} \
-	case EX_C_INT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_int = (parent1.u_int) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_int = (parent1.u_int) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_int) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_int) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_int = (parent1.u_int) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_int = (parent1.u_int) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_int) operation (parent2.u_uint); break; \
-		otherwise_error \
-	} \
-	case EX_C_LONG: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_long = (parent1.u_long) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_long = (parent1.u_long) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_long = (parent1.u_long) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_long) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_long = (parent1.u_long) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_long = (parent1.u_long) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_long = (parent1.u_long) operation (parent2.u_uint); break; \
-		otherwise_error \
-	} \
-	case EX_C_UBYTE: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_short = (parent1.u_ubyte) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_short = (parent1.u_ubyte) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_short = (parent1.u_ubyte) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_short = (parent1.u_ubyte) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_ubyte = (parent1.u_ubyte) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ushort = (parent1.u_ubyte) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_ubyte) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ubyte) operation (parent2.u_ulong); break; \
-		otherwise_error \
-	} \
-	case EX_C_USHORT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_int = (parent1.u_ushort) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_int = (parent1.u_ushort) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_int = (parent1.u_ushort) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_int = (parent1.u_ushort) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_ushort = (parent1.u_ushort) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ushort = (parent1.u_ushort) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_ushort) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ushort) operation (parent2.u_ulong); break; \
-		otherwise_error \
-	} \
-	case EX_C_UINT: switch (parent2.kind) { \
-		case EX_C_BYTE: this.u_long = (parent1.u_uint) operation (parent2.u_byte); break; \
-		case EX_C_SHORT: this.u_long = (parent1.u_uint) operation (parent2.u_short); break; \
-		case EX_C_INT: this.u_long = (parent1.u_uint) operation (parent2.u_int); break; \
-		case EX_C_LONG: this.u_long = (parent1.u_uint) operation (parent2.u_long); break; \
-		case EX_C_UBYTE: this.u_uint = (parent1.u_uint) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_uint = (parent1.u_uint) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_uint = (parent1.u_uint) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_uint) operation (parent2.u_ulong); break; \
-		otherwise_error \
-	} \
-	case EX_C_ULONG: switch (parent2.kind) { \
-		case EX_C_UBYTE: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ubyte); break; \
-		case EX_C_USHORT: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ushort); break; \
-		case EX_C_UINT: this.u_ulong = (parent1.u_ulong) operation (parent2.u_uint); break; \
-		case EX_C_ULONG: this.u_ulong = (parent1.u_ulong) operation (parent2.u_ulong); break; \
-		otherwise_error \
-	} \
+	} break; \
+	\
+	_ex_constant_intconvertcase_integer(BYTE, byte, this, parent1, operation, parent2) 		\
+	_ex_constant_intconvertcase_integer(SHORT, short, this, parent1, operation, parent2) 	\
+	_ex_constant_intconvertcase_integer(INT, int, this, parent1, operation, parent2) 		\
+	_ex_constant_intconvertcase_integer(LONG, long, this, parent1, operation, parent2) 		\
+	\
+	_ex_constant_uintconvertcase_integer(UBYTE, ubyte, this, parent1, operation, parent2)	\
+	_ex_constant_uintconvertcase_integer(USHORT, ushort, this, parent1, operation, parent2)	\
+	_ex_constant_uintconvertcase_integer(UINT, uint, this, parent1, operation, parent2)		\
+	_ex_constant_uintconvertcase_integer(ULONG, ulong, this, parent1, operation, parent2)	\
+	\
 	otherwise_error \
 }
+
+
+
+
+
+/** COMPARISON OPERATIONS **/
+
+#define _ex_constant_booleancast(lower2, upper, lower1, this, parent1, operation, parent2) \
+case EX_C_##upper: \
+	this.u_boolean = (parent1.u_##lower1) operation (parent2.u_##lower2); 	\
+	this.kind = EX_C_BOOLEAN;												\
+	break;
+
+#define _ex_constant_booleanconvertcase(upper, lower, this, parent1, operation, parent2) 		\
+case EX_C_##upper: switch (parent2.kind) {														\
+		_ex_constant_booleancast(byte, BYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_booleancast(short, SHORT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_booleancast(int, INT, lower, this, parent1, operation, parent2); 			\
+		_ex_constant_booleancast(long, LONG, lower, this, parent1, operation, parent2); 		\
+		\
+		_ex_constant_booleancast(ubyte, UBYTE, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_booleancast(ushort, USHORT, lower, this, parent1, operation, parent2); 	\
+		_ex_constant_booleancast(uint, UINT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_booleancast(ulong, ULONG, lower, this, parent1, operation, parent2);		\
+		\
+		_ex_constant_booleancast(float, FLOAT, lower, this, parent1, operation, parent2); 		\
+		_ex_constant_booleancast(double, DOUBLE, lower, this, parent1, operation, parent2); 	\
+		otherwise_error \
+} break;
+
+#define ex_constant_inherit_binary_number_comparison(this, parent1, operation, parent2) \
+switch (parent1.kind) { \
+	_ex_constant_booleanconvertcase(BYTE, byte, this, parent1, operation, parent2) 		\
+	_ex_constant_booleanconvertcase(SHORT, short, this, parent1, operation, parent2) 	\
+	_ex_constant_booleanconvertcase(INT, int, this, parent1, operation, parent2) 		\
+	_ex_constant_booleanconvertcase(LONG, long, this, parent1, operation, parent2) 		\
+	\
+	_ex_constant_booleanconvertcase(UBYTE, ubyte, this, parent1, operation, parent2)	\
+	_ex_constant_booleanconvertcase(USHORT, ushort, this, parent1, operation, parent2)	\
+	_ex_constant_booleanconvertcase(UINT, uint, this, parent1, operation, parent2)		\
+	_ex_constant_booleanconvertcase(ULONG, ulong, this, parent1, operation, parent2)	\
+	\
+	_ex_constant_booleanconvertcase(FLOAT, float, this, parent1, operation, parent2)   	\
+	_ex_constant_booleanconvertcase(DOUBLE, double, this, parent1, operation, parent2) 	\
+	\
+	otherwise_error \
+}
+
+#define ex_constant_inherit_binary_comparison(this, parent1, operation, parent2) \
+switch (parent1.kind) { \
+	case EX_C_BOOLEAN: switch (parent2.kind) { \
+		case EX_C_BOOLEAN: this.u_boolean = (parent1.u_boolean) operation (parent2.u_boolean); break; \
+		otherwise_error \
+	} break; \
+	\
+	_ex_constant_booleanconvertcase(BYTE, byte, this, parent1, operation, parent2) 		\
+	_ex_constant_booleanconvertcase(SHORT, short, this, parent1, operation, parent2) 	\
+	_ex_constant_booleanconvertcase(INT, int, this, parent1, operation, parent2) 		\
+	_ex_constant_booleanconvertcase(LONG, long, this, parent1, operation, parent2) 		\
+	\
+	_ex_constant_booleanconvertcase(UBYTE, ubyte, this, parent1, operation, parent2)	\
+	_ex_constant_booleanconvertcase(USHORT, ushort, this, parent1, operation, parent2)	\
+	_ex_constant_booleanconvertcase(UINT, uint, this, parent1, operation, parent2)		\
+	_ex_constant_booleanconvertcase(ULONG, ulong, this, parent1, operation, parent2)	\
+	\
+	_ex_constant_booleanconvertcase(FLOAT, float, this, parent1, operation, parent2)   \
+	_ex_constant_booleanconvertcase(DOUBLE, double, this, parent1, operation, parent2) \
+	\
+	otherwise_error \
+}
+
+#define ex_constant_inherit_binary_logic(this, parent1, operation, parent2) \
+switch (parent1.kind) { \
+	case EX_C_BOOLEAN: switch (parent2.kind) { \
+		case EX_C_BOOLEAN: this.u_boolean = (parent1.u_boolean) operation (parent2.u_boolean); break; \
+		otherwise_error \
+	} break; \
+	otherwise_error \
+}
+
 
 
 #endif /* CARBONSTEEL_SYNTAX_EXPRESSION_CONSTANT_BINARY */

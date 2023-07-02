@@ -24,8 +24,8 @@
 /**
  * Expression properties structure
  * whuch contains the expression type
- * and a constant expression value pointer
- * that can be NULL if the expression value
+ * and a constant expression that is set to
+ * DYNAMIC if the expression value
  * cannot be determined at compile time 
  */
 struct expression_properties {

@@ -73,7 +73,7 @@ iapi_append_operator(U, unary, logic_not, LOGIC_NOT) {
     iset_type(assign) {
         this->type = parent->type;
     }
-    iset_constant(logic not) {
+    iset_inherit_constant(logic not) {
         ex_constant_init(this->constant, BOOLEAN, boolean, ((uint8_t) !parent->constant.u_boolean));
     }
 }
@@ -89,7 +89,7 @@ iapi_init_with_kind(U, unary, increment, INCREMENT) {
     iset_type(assign) {
         this->type = parent->type;
     }
-    iset_constant(inherit increment) {
+    iset_inherit_constant(increment) {
         ex_constant_inherit_prefix(this->constant, parent->constant, ++);
     }
     iset_constant_origin(this, increment) {
@@ -108,7 +108,7 @@ iapi_init_with_kind(U, unary, decrement, DECREMENT) {
     iset_type(assign) {
         this->type = parent->type;
     }
-    iset_constant(inherit increment) {
+    iset_inherit_constant(increment) {
         ex_constant_inherit_prefix(this->constant, parent->constant, --);
     }
     iset_constant_origin(this, increment) {
@@ -137,7 +137,7 @@ iapi_init_with_kind(U, unary, minus, MINUS) {
     iset_type(assign) {
         this->type = parent->type;
     }
-    iset_constant(inherit negate) {
+    iset_inherit_constant(negate) {
         ex_constant_inherit_prefix(this->constant, parent->constant, -);
     }
 }

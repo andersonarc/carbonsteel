@@ -40,11 +40,9 @@ iapi_append_level_from_expression(PL, postfix, index, INDEX, expression) {
         arl_pop(ast_type_level, this->type.level_list);
     }
 
-    irequire_constant()(parent) {
-        irequire_constant(unsigned)(index) {
-            iset_constant(unsigned_assign) {
-                ex_constant_unsigned_assign(this->constant, parent->constant.u_array.data[, ]);
-            }
+    irequire_constant(unsigned)(index) {
+        iset_inherit_constant(unsigned_assign) {
+            ex_constant_unsigned_assign(this->constant, parent->constant.u_array.data[, ]);
         }
     }
 }

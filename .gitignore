@@ -4,3 +4,13 @@ draft
 vgcore*
 example/*.c
 example/*.h
+subprojects/boxfort.wrap
+subprojects/boxfort
+subprojects/criterion.wrap
+subprojects/criterion
+subprojects/nanomsg.wrap
+subprojects/nanomsg
+subprojects/nanopb.wrap
+subprojects/nanopb
+notes
+a.out

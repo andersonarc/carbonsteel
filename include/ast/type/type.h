@@ -27,6 +27,7 @@
 enum ast_type_level {
     AT_LEVEL_POINTER, AT_LEVEL_ARRAY
 };
+arraylist_declare_functions(ast_type_level);
 
 enum ast_type_kind {
     AST_TYPE_PRIMITIVE, AST_TYPE_STRUCTURE,
@@ -46,6 +47,7 @@ struct ast_type {
         void* u__any;
     };
 };
+arraylist_declare_functions(ast_type);
 
     /* functions */
 /**

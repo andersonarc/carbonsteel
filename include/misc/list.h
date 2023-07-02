@@ -60,10 +60,10 @@
     }
 
 
-#define arl_init(type, list)
-#define arl_trim(type, list)          
-#define arl_add(type, list, element)
-#define arl_pop(type, list)
+#define arl_init(type, list)         arraylist_init(type)(&list, ARRAYLIST_DEFAULT_SIZE)
+#define arl_trim(type, list)         arraylist_trim(type)(&list)
+#define arl_add(type, list, element) arraylist_add(type)(&list, element)
+#define arl_pop(type, list)          arraylist_pop(type)(&list)
 
 
 /**

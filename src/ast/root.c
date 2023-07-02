@@ -52,10 +52,9 @@ void ast_init(ast_root* ast) {
  * @param[in] value Value of the declaration
  */
 void ast_add_declaration(ast_root* ast, int kind, void* value) {
-    declaration dc = {
-        .kind = kind,
-        .u__any = value
-    };
+    declaration dc;
+    dc.kind = kind;
+    dc.u__any = value;
     arl_add(declaration, ast->declaration_list, dc);
 }
 

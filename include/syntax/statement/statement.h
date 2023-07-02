@@ -92,6 +92,7 @@ struct statement {
         st_compound u_st_compound;
     };
 };
+arraylist_declare_functions(statement);
 
 
 /**
@@ -107,6 +108,7 @@ struct st_compound_item {
         statement* u_statement;
     };
 };
+arraylist_declare_functions(st_compound_item);
 
 
 #endif /* CARBONSTEEL_SYNTAX_STATEMENT_H */

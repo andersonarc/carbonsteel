@@ -189,12 +189,12 @@
 #define iapi_binary_data()                                                                 \
     data_self_inheritance_with_ex_and(binary, operation, binary, other, op_binary operator)
 
-#define iapi_binary_properties_from_common(action_name, common_name, operation_range) \
+#define iapi_binary_properties_from_common(action_name, common_name) \
     iapi_binary_properties(action_name) {                                             \
         ex_binary_inherit_properties_on_##common_name(this, parent, other, operator); \
                                                                                       \
-        iset_constant(binary_##action_name) {                                         \
-            ex_constant_inherit_binary_##operation_range(this->constant, parent->constant, lookup_op_binary(action_name), other->constant); \
+        iset_binary_inherit_constant(binary_##action_name) {                          \
+            ex_constant_inherit_binary_##common_name(this->constant, parent->constant, lookup_op_binary(action_name), other->constant); \
         }                                                                             \
     }
 
@@ -211,7 +211,9 @@
  */
 #define iset_type(_)
 #define iset_constant(_)
-#define iset_constant_origin(value, _) if ((value)->constant.origin != NULL)
+#define iset_inherit_constant(_) irequire_constant()(parent)
+#define iset_binary_inherit_constant(_) irequire_constant()(parent) irequire_constant()(other)
+#define iset_constant_origin(value, _) if ((value)->constant.origin != NULL) if ((value)->constant.origin->kind != EX_C_DYNAMIC)
 #define iset_type_and_constant(_)
 
 /**

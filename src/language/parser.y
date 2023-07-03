@@ -107,6 +107,7 @@
 
 	/* keywords */
 %token	IMPORT 		"import"
+		NATIVE		"native"
 		EXTERN		"extern"
 		ALIAS		"alias"
 		ENUM		"enum"
@@ -180,6 +181,7 @@
 
 	/* import */
 %nterm 	<dc_import*>  import_declaration
+%nterm 	<dc_import*>  import_declaration_
 %nterm 	<arraylist(dc_import_node)>  import_node_list
 %nterm 	<dc_import_node>		     import_node
 
@@ -239,7 +241,8 @@
 
 	/* type */
 %nterm  <ast_type>  type
-%nterm  <ast_type>  type_
+%nterm  <ast_type>  type_recursive
+%nterm  <ast_type>  type_terminal
 
 	/* statement */
 %nterm 	<statement*>  statement
@@ -545,16 +548,28 @@ alias_declaration
 		}
 	;
 
-import_declaration
-	: 
-			{ context_enter(context, SCTX_IMPORT); }
-		IMPORT import_node_list ';'
+import_declaration_
+	: NATIVE import_node_list ';'
 			{
 				$$ = allocate(dc_import);
-				li_init_from(dc_import_node, (*$$), $import_node_list);
-
-				context_exit(context);
+				$$->is_native = true;
+				li_init_from(dc_import_node, $$->path, $import_node_list);
 			}
+	| import_node_list ';'
+			{
+				$$ = allocate(dc_import);
+				$$->is_native = false;
+				li_init_from(dc_import_node, $$->path, $import_node_list);
+			}
+	;
+
+import_declaration
+	: { context_enter(context, SCTX_IMPORT); }
+		IMPORT import_declaration_[value]
+	  { 
+		$$ = $value;
+		context_exit(context);
+      }
 	;
 
 import_node_list
@@ -592,16 +607,14 @@ constructor_expression_basic
 			$$->type = allocate(ast_type);
 			*$$->type = $type;
 			$$->argument_list = $invocation_expression;
-			$$->is_array = false;
-		}
-	| type '[' expression ']' invocation_expression
-		{
-			$$ = allocate(ex_constructor);
-			$$->type = allocate(ast_type);
-			*$$->type = $type;
-			$$->argument_list = $invocation_expression;
-			$$->is_array = true;
-			$$->u_array_size = &$expression->data;
+
+			if (ast_type_is_constant_array(&$type)) {
+				$$->is_array = true;
+				$$->u_array_size = ast_type_constant_array_size(&$type);
+				arl_pop(ast_type_level, (*$$->type).level_list);
+			} else {
+				$$->is_array = false;
+			}
 		}
 	;
 
@@ -849,28 +862,42 @@ assignment_operator
 
 
 type
-	: type_
+	: type_recursive
 		{
-			$$ = $type_;
+			$$ = $type_recursive;
 			if (!arraylist_is_empty($$.level_list)) {
 				arl_trim(ast_type_level, $$.level_list);
 			}
 		}
 	| UNSIGNED
 		{
-			context_enter(context, SCTX_FLAG);
+			context_enter(context, SCTX_FLAG); //todo potential issue - context not exited?
 			flag_context_set_unsigned(context_current(context)->u_flag_context);
 		}
-	  type_
+	  type_recursive
 	  	{
-			$$ = $type_;
+			$$ = $type_recursive;
 			if (!arraylist_is_empty($$.level_list)) {
 				arl_trim(ast_type_level, $$.level_list);
 			}
 		}
 	;
 
-type_
+type_recursive
+	: type_terminal
+		{ $$ = $type_terminal; }
+	
+	| type_recursive[value] '*'	   
+		{ $$ = $value; ast_type_pointer_wrap(&$$); }
+
+	| type_recursive[value] '[' ']' 
+		{ $$ = $value; ast_type_array_wrap(&$$); }
+	
+	| type_recursive[value] '[' expression ']' 
+		{ $$ = $value; ast_type_constant_array_wrap(&$$, &$expression->data); }
+	;
+
+type_terminal
     : PRIMITIVE_NAME 
 		{ ast_type_init(&$$, AST_TYPE_PRIMITIVE, $PRIMITIVE_NAME); }
 
@@ -882,14 +909,7 @@ type_
 
 	| ALIAS_NAME
 		{ ast_type_clone_to(&$$, $ALIAS_NAME->target); }
-
-    | type '*'	   
-		{ $$ = $type; ast_type_pointer_wrap(&$$); }
-
-	| type '[' ']' 
-		{ $$ = $type; ast_type_array_wrap(&$$); }
 	;
-
 
 
 

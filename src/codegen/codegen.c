@@ -193,7 +193,7 @@ cgd_type() {
         otherwise_error
     }
     iterate_array(i, type->level_list.size) {
-        switch (type->level_list.data[i]) {
+        switch (type->level_list.data[i].kind) {
             case AT_LEVEL_POINTER:
             case AT_LEVEL_ARRAY:
                 out(char)('*');
@@ -725,11 +725,13 @@ cgd_dc(function) {
     /** IMPORT **/
 
 cgd_dc(import) {
-    out(string)("#include <");
-    iterate_array(i, dc->size) {
-        out(string)(dc->data[i]);
+    if (dc->is_native) {
+        out(string)("#include <");
+        iterate_array(i, dc->path.size) {
+            out(string)(dc->path.data[i]);
+        }
+        out(string)(".h>\n");
     }
-    out(string)(".h>\n");
 }
 
     /* code generation tasks */

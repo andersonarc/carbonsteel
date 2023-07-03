@@ -18,6 +18,7 @@
  * Type check functions
  * 
  *  ast_type_is_array   - type is an array
+ *  | - ast_type_is_constant_array - type is an array of constant length
  *  ast_type_is_pointer - type is a pointer
  *  | - ast_type_is_single_pointer - type is a single pointer
  *  ast_type_is_plain   - type is plain (not array or pointer)
@@ -33,6 +34,7 @@
  * @return true if the type matches the specified condition
  */
 bool ast_type_is_array  (ast_type* value);
+bool ast_type_is_constant_array(ast_type* value);
 bool ast_type_is_pointer(ast_type* value);
 bool ast_type_is_single_pointer(ast_type* value);
 bool ast_type_is_plain  (ast_type* value);

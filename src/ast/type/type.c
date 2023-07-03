@@ -12,6 +12,7 @@
 
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "ast/type/primitive.h" /* primitive type */
+#include "ast/type/check.h"  /* type checks */
 #include "misc/memory.h"   /* memory allocation */
 
     /* functions */
@@ -95,11 +96,36 @@ ast_type* ast_type_clone(ast_type value) {
  * @param[out] value Pointer to the type
  */
 void ast_type_array_wrap(ast_type* value) {
-    arl_add(ast_type_level, value->level_list, AT_LEVEL_ARRAY);
+    ast_type_level level = { .kind = AT_LEVEL_ARRAY, .u_array_size = NULL };
+    arl_add(ast_type_level, value->level_list, level);
+}
+
+void ast_type_constant_array_wrap(ast_type* value, expression_data* size) {
+    if (size == 0) {
+        error_syntax("array size cannot be equal to 0");
+    }
+
+    ast_type_level level = { .kind = AT_LEVEL_ARRAY, .u_array_size = size };
+    arl_add(ast_type_level, value->level_list, level);
 }
 
 void ast_type_pointer_wrap(ast_type* value) {
-    arl_add(ast_type_level, value->level_list, AT_LEVEL_POINTER);
+    ast_type_level level = { .kind = AT_LEVEL_POINTER, .u_array_size = NULL };
+    arl_add(ast_type_level, value->level_list, level);
+}
+
+/**
+ * Returns the size if the type is a constant array,
+ * or throws an internal error otherwise
+ * 
+ * @param[out] size Size of the constant array
+ */
+expression_data* ast_type_constant_array_size(ast_type* value) {
+    if (!ast_type_is_constant_array(value)) {
+        error_internal("expected a constant array");
+    }
+
+    return arraylist_last(value->level_list).u_array_size;
 }
 
 /**
@@ -149,7 +175,7 @@ char* ast_type_to_string(ast_type* value) {
 
     /* calculate size of the level list */
     iterate_array(i, value->level_list.size) {
-        switch (value->level_list.data[i]) {
+        switch (value->level_list.data[i].kind) {
             case AT_LEVEL_POINTER:
                 buffer_size++;
             break;
@@ -170,7 +196,7 @@ char* ast_type_to_string(ast_type* value) {
     /* append the level list after the typename */
     index_t pos = name_size;
     iterate_array(i, value->level_list.size) {
-        switch (value->level_list.data[i]) {
+        switch (value->level_list.data[i].kind) {
             case AT_LEVEL_POINTER:
                 buffer[pos] = '*';
             break;

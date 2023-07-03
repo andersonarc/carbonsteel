@@ -112,7 +112,10 @@ struct dc_function {
  * 
  * @warn empty imports are not allowed
  */
-typedef list(dc_import_node) dc_import;
+struct dc_import {
+    list(dc_import_node) path;
+    bool is_native;
+};
 
 
 /**

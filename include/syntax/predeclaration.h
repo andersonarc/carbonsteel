@@ -65,7 +65,8 @@ d_struct(ast_type_declaration);
     /* lexical type */
 da_struct(ast_type);
     d_enum(ast_type_kind);
-    da_enum(ast_type_level);
+    da_struct(ast_type_level);
+    d_enum(ast_type_level_kind);
 
     /* primitive type */
 dl_struct(ast_type_primitive);
@@ -93,7 +94,7 @@ d_struct(dc_function);
     /* import */
 da_alias(dc_import_node, char*);
 arraylist_declare_functions(dc_import_node);
-    d_alias(dc_import, list(dc_import_node));
+    d_struct(dc_import);
 
     /* declaration */
 da_struct(declaration);

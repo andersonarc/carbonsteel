@@ -81,6 +81,7 @@ WS     [ \t\v\f]
 
     /* keywords */
 "import"                { return TOKEN_IMPORT;   }
+"native"                { return TOKEN_NATIVE;   }
 "extern"                { return TOKEN_EXTERN;   }
 "alias"                 { return TOKEN_ALIAS;    }
 "enum"					{ return TOKEN_ENUM;     }

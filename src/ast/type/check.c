@@ -23,9 +23,9 @@
  * @return true if the last type level 
  *          is of specified kind
  */
-bool ast_type_last_level_is(ast_type* value, ast_type_level level) {
+bool ast_type_last_level_is(ast_type* value, ast_type_level_kind level) {
     if (arraylist_is_empty(value->level_list)) return false;
-    return arraylist_last(value->level_list) == level;
+    return arraylist_last(value->level_list).kind == level;
 }
 
 //todo @return With Capital Letter
@@ -50,6 +50,12 @@ bool ast_type_last_level_is(ast_type* value, ast_type_level level) {
  */
 bool ast_type_is_array(ast_type* value) { 
     return ast_type_last_level_is(value, AT_LEVEL_ARRAY);
+}
+
+bool ast_type_is_constant_array(ast_type* value) { 
+    if (ast_type_is_array(value)) {
+        return arraylist_last(value->level_list).u_array_size != NULL;
+    } else return false;
 }
 
 bool ast_type_is_pointer(ast_type* value) {
@@ -220,7 +226,7 @@ bool ast_type_is_equal(ast_type* a, ast_type* b) {
     if (a->level_list.size != b->level_list.size) return false;
 
     iterate_array(i, a->level_list.size) {
-        if (a->level_list.data[i] != b->level_list.data[i]) return false;
+        if (a->level_list.data[i].kind != b->level_list.data[i].kind) return false;
     }
 
     return true;

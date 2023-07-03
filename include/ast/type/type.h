@@ -24,8 +24,12 @@
  * Type value is a reference to 
  * a declaration in the AST.
  */
-enum ast_type_level {
+enum ast_type_level_kind {
     AT_LEVEL_POINTER, AT_LEVEL_ARRAY
+};
+struct ast_type_level {
+    ast_type_level_kind kind;
+    expression_data* u_array_size;
 };
 arraylist_declare_functions(ast_type_level);
 
@@ -104,7 +108,16 @@ ast_type* ast_type_clone(ast_type value);
  * @param[out] value Pointer to the type
  */
 void ast_type_array_wrap(ast_type* value);
+void ast_type_constant_array_wrap(ast_type* value, expression_data* size);
 void ast_type_pointer_wrap(ast_type* value);
+
+/**
+ * Returns the size if the type is a constant array,
+ * or throws an internal error otherwise
+ * 
+ * @param[out] size Size expression of the constant array
+ */
+expression_data* ast_type_constant_array_size(ast_type* value);
 
 /**
  * Converts a lexical type to a string

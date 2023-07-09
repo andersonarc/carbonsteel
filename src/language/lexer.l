@@ -61,6 +61,13 @@ WS     [ \t\v\f]
     * @return The character constant
     */
     char parse_character_constant(char* value);
+
+    /**
+     * Handles body skips for different file passes
+     */
+    #define start_skip_action if (context->expect_skip_from == true) {
+    #define end_skip_action context->expect_skip_from = false; }
+    #define consider_skip() start_skip_action BEGIN(SKIP); end_skip_action
     
     #define YYSTYPE MYYSTYPE
     #define YYLTYPE MYYLTYPE
@@ -71,12 +78,116 @@ WS     [ \t\v\f]
 %option reentrant bison-bridge bison-locations
 %option warn nodefault
 %option outfile="main_lexer.c" header-file="main_lexer.h"
+%s SKIP
+%s SKIP_BODY
+%s SKIP_PARAMETERS
+%s SKIP_STATEMENT
 
 %%
 
     /* comments */
 "/*"                    { consume_multi_line_comment(yyscanner); }
 "//".*                  { /* consume a single-line comment */    }
+
+
+    /* skip start */
+<SKIP>"{"               {
+                            logd("skip: body");
+                            ++context->skip_pair_count;
+                            context->skip_until = '}';
+                            BEGIN(0);
+                            BEGIN(SKIP_BODY);
+                        }
+
+<SKIP>"("               {
+                            logd("skip: parameters");
+                            ++context->skip_pair_count;
+                            context->skip_until = ')';
+                            BEGIN(0);
+                            BEGIN(SKIP_PARAMETERS);
+                        }
+
+<SKIP>"="               {
+                            logd("skip: statement");
+                            context->skip_until = ';';
+                            BEGIN(0);
+                            BEGIN(SKIP_STATEMENT);
+                        }
+
+    /* skip handler */
+<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT>"\n"                            { yylloc_param->first_line++; yylloc_param->last_line++; }
+<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT>{CPREF}?"'"([^'\\\n]|{CHR})+"'" { logd("skip: consuming a string"); }
+<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT>{SPREF}?\"([^"\\\n]|{CHR})*\"   { logd("skip: consuming a character"); }
+
+    /* skip body */
+<SKIP_BODY>"{"          {
+                            logd("body skip: counting {");
+                            ++context->skip_pair_count;
+                        }
+
+<SKIP_BODY>"}"          {
+                            logd("body skip: counting }");
+                            --context->skip_pair_count;
+                            if (context->skip_pair_count == 0) {
+                                BEGIN(0);
+                                context->skip_until = 0;
+                                return TOKEN_SKIPPED_BODY;
+                            }
+                        }
+
+<SKIP_BODY>[^{}\n]+ {
+                        logd("discard %s", yytext);
+                    }
+
+    /* skip parameters */
+<SKIP_PARAMETERS>"("    {
+                            logd("parameter skip: counting (");
+                            ++context->skip_pair_count;
+                        }
+
+<SKIP_PARAMETERS>")"    {
+                            logd("parameter skip: counting )");
+                            --context->skip_pair_count;
+                            if (context->skip_pair_count == 0) {
+                                BEGIN(0);
+                                context->skip_until = 0;
+                                /* todo make this optional */
+                                logd("parameter skip: forwarding to body skip");
+                                // todo DO NOT do it in case there is no body!
+                                context->expect_skip_from = true;
+                                consider_skip();
+                                return TOKEN_SKIPPED_PARAMETERS;
+                            }
+                        }
+
+<SKIP_PARAMETERS>[^()\n]+   {
+                                logd("discard %s", yytext);
+                            }
+
+    /* skip statement */
+<SKIP_STATEMENT>"{"     {
+                            logd("statement skip: counting {");
+                            ++context->skip_pair_count;
+                        }
+
+<SKIP_STATEMENT>"}"     {
+                            logd("statement skip: counting }");
+                            --context->skip_pair_count;
+                        }
+
+<SKIP_STATEMENT>";"     {
+                            if (context->skip_pair_count == 0) {
+                                logd("statement skip: met terminal ;")
+                                BEGIN(0);
+                                return TOKEN_SKIPPED_STATEMENT;
+                            } else {
+                                logd("statement skip: met non-terminal ;")
+                            }                            
+                        }
+
+<SKIP_STATEMENT>[^{};"'\n]+ {
+                                logd("discard %s", yytext);
+                            }
 
 
     /* keywords */
@@ -113,7 +224,7 @@ WS     [ \t\v\f]
                             }
 
     /* identifier */
-{AZ}{AN}*		            { return ast_lex_token(context, yylval_param, yytext); }
+{AZ}{AN}*		            { consider_skip(); return ast_lex_token(context, yylval_param, yytext); }
 
 
     /* integer constants */
@@ -214,12 +325,38 @@ WS     [ \t\v\f]
     /* other tokens */
 "..."               { return TOKEN_C_VARARG;            }
 ";"					{ return ';'; }
-("{"|"<%")			{ return '{'; }
-("}"|"%>")			{ return '}'; }
+"{"                 {
+                        start_skip_action
+                            logd("skip: body");
+                            ++context->skip_pair_count;
+                            context->skip_until = '}';
+                            BEGIN(0);
+                            BEGIN(SKIP_BODY);
+                        end_skip_action
+                        else return '{';
+                    }
+"}"			        { return '}'; }
+"("                 {
+                        start_skip_action
+                            logd("skip: parameters");
+                            ++context->skip_pair_count;
+                            context->skip_until = ')';
+                            BEGIN(0);
+                            BEGIN(SKIP_PARAMETERS);
+                        end_skip_action
+                        else return '(';
+                    }
+"="                 {
+                        start_skip_action
+                            logd("skip: statement");
+                            context->skip_until = ';';
+                            BEGIN(0);
+                            BEGIN(SKIP_STATEMENT);
+                        end_skip_action
+                        else return '=';
+                    }
 ","					{ return ','; }
 ":"					{ return ':'; }
-"="					{ return '='; }
-"("					{ return '('; }
 ")"					{ return ')'; }
 ("["|"<:")			{ return '['; }
 ("]"|":>")			{ return ']'; }

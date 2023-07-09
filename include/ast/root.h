@@ -23,7 +23,7 @@
  * declarations and a lookup table
  */
 typedef struct ast_root {
-    arraylist(declaration) declaration_list;
+    arraylist(declaration_ptr) declaration_list;
     struct hsearch_data* hash_table;
 } ast_root;
 
@@ -44,8 +44,10 @@ void ast_init(ast_root* ast);
  * @param[in] ast   Pointer to the AST
  * @param[in] kind  Kind of the declaration
  * @param[in] value Value of the declaration
+ * 
+ * @return Pointer to the created declaration or NULL if it has been merged
  */
-void ast_add_declaration(ast_root* ast, int kind, void* value);
+declaration* ast_add_declaration(ast_root* ast, int kind, void* value);
 
 /**
  * Creates a new global identifier entry
@@ -53,10 +55,33 @@ void ast_add_declaration(ast_root* ast, int kind, void* value);
  * 
  * @param[in] ast   Pointer to the AST
  * @param[in] token Token kind of the identifier
- * @param[in] name  Name of the identifier
- * @param[in] value Value of the identifier
+ * @param[in] dc    Pointer to the declaration
  */
-void ast_add_identifier(ast_root* ast, char* name, int token, void* value);
+void ast_add_identifier(ast_root* ast, int token, declaration* dc);
+
+/**
+ * Looks up a declaration by its name and expected kind
+ * 
+ * @param[in] ast  Pointer to the AST
+ * @param[in] kind Kind of the declaration
+ * @param[in] name Name of the declaration
+ * 
+ * @return Pointer to the declaration structure or NULL
+ */
+declaration* ast_declaration_lookup(ast_root* ast, declaration_kind kind, char* name);
+
+/**
+ * Attemps to merge two declarations, either adding extra information
+ * to an existing declaration or throwing an error in case the existing declaration
+ * is flagged as full
+ * 
+ * @param[in] ast Pointer to the AST
+ * @param[in] dc  Declaration to append on the AST
+ * 
+ * @return false if a new declaration needs to be created,
+ *          true if the declaration has been merged successfully
+ */
+bool ast_declaration_merge(ast_root* ast, declaration* dc);
 
 /**
  * Alias for creating an AST declaration
@@ -69,8 +94,10 @@ void ast_add_identifier(ast_root* ast, char* name, int token, void* value);
  * @param[in] value Value of the identifier
  */
 static inline void ast_declare(ast_root* ast, int kind, int token, char* name, void* value) {
-    ast_add_declaration(ast, kind, value);
-    ast_add_identifier(ast, name, token, value);
+    declaration* dc = ast_add_declaration(ast, kind, value);
+    if (dc != NULL) {
+        ast_add_identifier(ast, token, dc);
+    }
 }
 
 

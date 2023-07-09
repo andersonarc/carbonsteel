@@ -9,8 +9,11 @@
     /* includes */
 #include "language/context.h" /* this */
 
+#include <stdlib.h>
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h" /* memory allocation */
+#include "language/parser.h" /* parser */
+#include "language/lexer.h" /* lexer */
 
     /* global variables */
 /**
@@ -29,6 +32,13 @@ const char* se_context_level_kind_strings[] = {
 se_context* context_new() {
     se_context* context = allocate(se_context);
     arl_init(se_context_level, context->stack);
+    context->skip_pair_count = 0;
+    context->skip_until = 0;
+    context->expect_skip_from = false;
+    context->pass = SCTX_PASS_3;
+
+    /* initialize the file list */
+    arl_init(se_context_import_file_ptr, context->file_list);
 
     /* add a global level */
     se_context_level global;
@@ -137,4 +147,161 @@ void context_exit(se_context* context) {
     }
     
     arl_pop(se_context_level, context->stack);
+}
+
+
+/**
+ * Translates an import statement to a full absolute path\
+ * 
+ * @param import The import statement
+ * 
+ * @return Absolute path to the file, allocated with malloc
+ */
+char* import_to_filename(dc_import* import) {
+    if (import->is_native) {
+        return NULL; /* todo - native import parser via PATH */
+    }
+
+    /* firstly, resolve the relative filename from path segments */
+    size_t total_length = 0;
+    for (int i = 0; i < import->path.size; i++) {
+        total_length += strlen(import->path.data[i]) + 1;
+        /* +1 for the '/' path separator after each element */
+        /* the trailing '/' is used for the null terminator */
+    }
+    /* account for the extension */
+    total_length += 4; /* 5 ".cst" - 1 "/" = 4 */
+
+    /* start merging the segments into an allocated buffer */
+    char* filename = malloc(sizeof(char) * total_length);
+    size_t offset = 0;
+    for (int i = 0; i < import->path.size; i++) {
+        /* append the path element*/
+        size_t current_length = strlen(import->path.data[i]);
+        strncpy(filename + offset, import->path.data[i], current_length);
+        offset += current_length;
+
+        /* append the path separator */
+        filename[offset] = '/';
+        offset += 1;
+    }
+    /* append the extension */
+    strncpy(&filename[offset - 1], ".cst", 5);
+
+    /* translate to an absolute path */
+    char* absolute = realpath(filename, NULL);
+    free(filename);
+
+    return absolute;
+}
+
+
+/**
+ * Parses the given file and adds data from it (depending on the pass)
+ * to the context's abstract syntax tree
+ * 
+ * @param context Pointer to the parser context
+ * @param filename Path to the file
+ */
+void context_parse(se_context* context, char* filename) {
+    logd("parsing %s on pass %d", filename, context->pass + 1);
+
+    /* open the file */
+    FILE* input = fopen(filename, "r");
+    if (input == NULL) {
+        error_internal("import: unable to open file %s", filename);
+    }
+
+    /* initialize the scanner */
+    yyscan_t scanner;
+    if (myylex_init(&scanner) != 0) {
+        error_internal("import: unable to initizize the yacc scanner");
+    }
+    myyset_in(input, scanner);
+
+    /* parse */
+    if (myyparse(scanner, context) != 0) {
+        error_internal("import: parsing file %s failed", filename);
+    }
+
+    /* free */
+    myylex_destroy(scanner);
+    fclose(input);
+
+    logd("successful");
+}
+
+
+/**
+ * Parses the given file, treating it as the origin
+ * This means that function bodies and other non-header data
+ * from this file will be stored in the abstact syntax tree
+ * 
+ * @param context Pointer to the parser context
+ * @param filename Path to the file
+ */
+void context_parse_origin(se_context* context, char* filename_) {
+    if (context->pass != SCTX_PASS_3) {
+        logfe("this function should only be called with newly created contexts");
+    }
+
+    /* ensure the path is absolute */
+    char* filename = realpath(filename_, NULL);
+    logd("starting the parser at %s", filename);
+
+    /* mark the file as imported to prevent self-imports */
+    se_context_import_file* import_file = allocate(se_context_import_file);
+    import_file->filename = filename;
+    arl_add(se_context_import_file_ptr, context->file_list, import_file);
+
+    /* do three passes on the file */
+    context->pass = SCTX_PASS_1;
+    import_file->last = context->pass;
+    context_parse(context, filename);
+    context->pass = SCTX_PASS_2;
+    import_file->last = context->pass;
+    context_parse(context, filename);
+    context->pass = SCTX_PASS_3;
+    import_file->last = context->pass;
+    context_parse(context, filename);
+
+    /* free */
+    free(filename);
+
+    logd("successful");
+}
+
+
+/**
+ * Imports the given file, importing only the header data
+ * such as type and function declarations
+ * 
+ * @param context Pointer to the parser context
+ * @param import The import declaration
+ */
+void context_import(se_context* context, dc_import* import) {
+    /* resolve the path */
+    char* filename = import_to_filename(import);
+    size_t filename_length = strlen(filename);
+
+    /* handle repeating (circular/self) imports */
+    for (int i = 0; i < context->file_list.size; i++) {
+        se_context_import_file* current_file = context->file_list.data[i];
+        if (strncmp(filename, current_file->filename, filename_length) == 0) {
+            if (current_file->last == context->pass) {
+                logd("rejected repeat import of %s", filename);
+                free(filename);
+                return;
+            }
+        }
+    }
+    se_context_import_file* import_file = allocate(se_context_import_file);
+    import_file->filename = filename;
+    import_file->last = context->pass;
+    arl_add(se_context_import_file_ptr, context->file_list, import_file);
+    
+    /* parse the file */
+    if (context->pass != SCTX_PASS_3) {
+        context_parse(context, filename);
+    }
 }

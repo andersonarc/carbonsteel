@@ -65,13 +65,11 @@
     /* functions */
 /**
  * Does code generation into the
- * specified output source and header files
+ * specified output file
  * 
  * @param ast The abstract syntax tree
- * @param source The source file
- * @param header The header file
- * @param header_name The header file name
+ * @param output The output source code file
  */
-void codegen(ast_root* ast, FILE* source, FILE* header, char* header_name);
+void codegen(ast_root* ast, FILE* output);
 
 #endif /* CARBONSTEEL_CODEGEN_CODEGEN_H */

@@ -20,7 +20,9 @@
  * @param argc Argument count (at least 2)
  * @param argv Arguments (compiler action and files)
  */
-int main(int argc, const char* argv[]) {
+int main(int argc, char* argv[]) {
+    //myydebug = 1;
+
     /* check the arguments */
     if (argc < 2) {
         logfe("Please specify an action for the compiler: [forge]");
@@ -37,55 +39,27 @@ int main(int argc, const char* argv[]) {
 
     /* compile each file */
     iterate_range_single(i, 2, argc) {
-        /* set input */
-        FILE* input = fopen(argv[i], "r");
-        if (input == NULL) {
-            loge("Unable to open file %s", argv[i]);
-            continue;
-        }
-        yyscan_t scanner;
-        if (myylex_init(&scanner) != 0) {
-            logfe("unable to initizize the yacc scanner");
-        }
-        myyset_in(input, scanner);
+        /* parse */
+        se_context* context = context_new();
+        context_parse_origin(context, argv[i]);
 
         /* set output */
         size_t input_name_length = strlen(argv[i]);
-
-        char* source_name = allocate_array(char, input_name_length + sizeof(".c"));
-        strncpy(source_name, argv[i], input_name_length);
-        strncpy(&source_name[input_name_length], ".c", 3);
-        FILE* source = fopen(source_name, "w");
-        if (source == NULL) {
-            loge("Unable to open file %s for output", source_name);
+        char* output_name = allocate_array(char, input_name_length + sizeof(".c"));
+        strncpy(output_name, argv[i], input_name_length);
+        strncpy(&output_name[input_name_length], ".c", 3);
+        FILE* output = fopen(output_name, "w");
+        if (output == NULL) {
+            loge("Unable to open file %s for output", output_name);
             continue;
         }
-        free(source_name);
-
-        char* header_name = allocate_array(char, input_name_length + sizeof(".c"));
-        strncpy(header_name, argv[i], input_name_length);
-        strncpy(&header_name[input_name_length], ".h", 3);
-        FILE* header = fopen(header_name, "w");
-        if (header == NULL) {
-            loge("Unable to open file %s for output", header_name);
-            continue;
-        }
-
-        /* parse */
-        se_context* context = context_new();
-        if (myyparse(scanner, context) != 0) {
-            printf("Parsing file %s failed", argv[i]);
-            continue;
-        }
+        free(output_name);
 
         /* do code generation */
-        codegen(&context->ast, source, header, header_name);
+        codegen(&context->ast, output);
 
         /* close the files */
-        fclose(input);
-        fclose(source);
-        fclose(header);
-        free(header_name);
+        fclose(output);
     }
 
     /* success */

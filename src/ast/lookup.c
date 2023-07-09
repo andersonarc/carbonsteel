@@ -53,22 +53,29 @@ myytoken_kind_t ast_lex_token(se_context* context, MYYSTYPE* yylval, char* token
     ENTRY* result;
     ENTRY request = { .key = token };
     if (hsearch_r(request, FIND, &result, context->ast.hash_table) != 0) {
-        ast_declaration* dc = (ast_declaration*) result->data;
+        declaration* dc = (declaration*) result->data;
         yylval->TOKEN_ANY_NAME = dc->u__any;
+
+        /*
+            I don't remember why this is here, but let it stay.
+        if (!dc->is_full) {
+            yylval->TOKEN_IDENTIFIER = copy_string(token);
+            return TOKEN_IDENTIFIER;
+        }*/
 
         /**
          * Unsigned integer workaround
          */
         flag_context_if_unsigned(flags) {
             //todo workaround for aliases required?
-            if (dc->kind == TOKEN_PRIMITIVE_NAME && ast_type_primitive_is_signed(dc->u_primitive)) {
+            if (dc->token == TOKEN_PRIMITIVE_NAME && ast_type_primitive_is_signed(dc->u_primitive)) {
                 dc->u_primitive = primitive_signed_to_unsigned(dc->u_primitive);
             } else {
                 error_syntax("only primitive integers can be unsigned");
             }
         }
 
-        return dc->kind;
+        return dc->token;
     }
 
     /**

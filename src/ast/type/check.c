@@ -11,6 +11,7 @@
 #include "ast/type/check.h" /* this */
 
 #include "ast/type/primitive.h" /* primitive types */
+#include "syntax/declaration/declaration.h"
 
     /* internal functions */
 /**
@@ -222,7 +223,37 @@ bool ast_type_is_pp_boolean(ast_type* value) {
  */
 bool ast_type_is_equal(ast_type* a, ast_type* b) {
     if (a->kind != b->kind) return false;
-    if (a->u__any != b->u__any) return false;
+    
+    /*switch (a->kind) {
+        case AST_TYPE_STRUCTURE:
+            if (memcmp(a->u_structure, b->u_structure, sizeof(dc_structure)) != 0) {
+                return false;
+            }
+            break;
+
+        case AST_TYPE_ENUM:
+            if (memcmp(a->u_enum, b->u_enum, sizeof(dc_enum)) != 0) {
+                return false;
+            }
+            break;
+
+        case AST_TYPE_FUNCTION:
+            if (memcmp(a->u_function, b->u_function, sizeof(dc_function)) != 0) {
+                return false;
+            }
+            break;
+        
+        case AST_TYPE_PRIMITIVE:
+            if (memcmp(a->u_primitive, b->u_primitive, sizeof(ast_type_primitive)) != 0) {
+                return false;
+            }
+            break;
+
+        otherwise_error
+    }*/
+    logfe("fixme-immediately");
+    /* TODO - TEMPORARY WORKAROUND. Why a.u__any != b.u__any??*/
+    //if (a->u__any != b->u__any) return false;
     if (a->level_list.size != b->level_list.size) return false;
 
     iterate_array(i, a->level_list.size) {

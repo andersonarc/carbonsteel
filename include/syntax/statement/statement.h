@@ -28,6 +28,7 @@
  * Uninitialized variables are not allowed.
  */
 struct dc_st_variable {
+    bool is_full; /* marks partial declarations */
     ast_type type;
     char* name;
     ex_block value;

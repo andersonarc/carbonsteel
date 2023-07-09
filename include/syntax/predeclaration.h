@@ -56,6 +56,8 @@
 #define dl_alias(name, target)  d_alias(name, target); list_declare(name)
 
             /* typedefs */
+d_struct(se_context_import_file);
+    da_pointer(se_context_import_file);
 
         /** LEXICAL TYPES **/
 
@@ -97,7 +99,8 @@ arraylist_declare_functions(dc_import_node);
     d_struct(dc_import);
 
     /* declaration */
-da_struct(declaration);
+d_struct(declaration);
+da_pointer(declaration);
     d_enum(declaration_kind);
 
 

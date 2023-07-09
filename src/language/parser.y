@@ -20,6 +20,12 @@
 	#include "syntax/expression/complex.h" /* expressions */
 	#include "syntax/statement/statement.h" /* statements */
 	#include "syntax/declaration/declaration.h" /* declarations */
+
+	typedef struct type_and_name {
+		bool is_full;
+		ast_type type;
+		char* name;
+	} type_and_name;
 }
 
 %code provides {	
@@ -65,6 +71,7 @@
 %define api.pure 	full 	/* use pure parser interface */
 %define parse.lac 	full	/* accurate list of expected tokens */
 %locations 				   	/* track token locations */
+//%define parse.trace
 
 
 
@@ -138,8 +145,11 @@
 %token <dc_function*> 			FUNCTION_NAME 			"function name"
 %token <dc_function_parameter*> FUNCTION_PARAMETER_NAME	"function parameter name"
 
-	/* special token */
+	/* special tokens */
 %token <void*> ANY_NAME /* should only be used by the ast_lex_token function */
+%token SKIPPED_PARAMETERS
+%token SKIPPED_BODY
+%token SKIPPED_STATEMENT
 
 	/* other tokens */
 %token C_VARARG "..."
@@ -148,12 +158,12 @@
 
 
 		/* rule types */
-
-	/* declaration */
-%nterm 	<declaration>  declaration
+%nterm  <type_and_name> type_and_name
 
 	/* function */
+%nterm  <char*> 		function_or_variable_name
 %nterm 	<dc_function*>  function
+%nterm 	<dc_function*>  function_prefix
 %nterm 	<dc_function*>  function_declaration
 %nterm 	<dc_function*>  function_definition
 %nterm 	<dc_function_parameters> 			function_parameters
@@ -162,21 +172,25 @@
 %nterm 	<dc_function_parameter>			  	function_parameter
 
 	/* structure */
+%nterm  <char*> 		 structure_name
 %nterm 	<dc_structure*>  structure_declaration
 %nterm 	<list(dc_structure_member)>		  structure_body
 %nterm 	<arraylist(dc_structure_member)>  structure_member_list
 %nterm	<dc_structure_member>			  structure_member
 
 	/* enum */
+%nterm  <char*>  	enum_name
 %nterm 	<dc_enum*>  enum_declaration
 %nterm 	<list(dc_enum_member)>		 enum_body
 %nterm 	<arraylist(dc_enum_member)>  enum_member_list
 %nterm 	<dc_enum_member>			 enum_member
 
 	/* variable */
+%nterm 	<dc_st_variable*>  global_variable_declaration_statement
 %nterm 	<dc_st_variable*>  variable_declaration_statement
 
 	/* alias */
+%nterm	<char*>		 alias_name
 %nterm 	<dc_alias*>  alias_declaration
 
 	/* import */
@@ -280,8 +294,16 @@ declaration_list
 	;
 
 declaration
+	: { context_skip(context, 1); }
+      declaration_
+	;
+
+declaration_
 	: structure_declaration 			
 		{ 	
+			// pass 1: import only name. skip from { to matching }
+			// pass 2: import the members
+			// pass 3: pass 2
 			ast_declare(&context->ast, 
 				DC_STRUCTURE, TOKEN_STRUCTURE_NAME, 
 				$structure_declaration->name,
@@ -290,6 +312,9 @@ declaration
 
     | enum_declaration					
 		{ 	
+			// pass 1: import only name. skip from { to matching }
+			// pass 2: import the members
+			// pass 3: pass 2
 			ast_declare(&context->ast,
 				DC_ENUM, TOKEN_ENUM_NAME, 
 				$enum_declaration->name,
@@ -298,6 +323,9 @@ declaration
 
 	| alias_declaration	
 		{
+			// pass 1: import only name. skip until ;
+			// pass 2: import the target
+			// pass 3: pass 2
 			ast_declare(&context->ast,
 				DC_ALIAS, TOKEN_ALIAS_NAME, 
 				$alias_declaration->name,
@@ -306,31 +334,84 @@ declaration
 
 	| function
 		{ 	
+			// pass 1: skip entirely until ;
+			// pass 2: import with no body
+			// pass 3: import with body
 			ast_declare(&context->ast, 			
 				DC_FUNCTION, TOKEN_FUNCTION_NAME, 
 				$function->name,
 				$function); 
 		}
 
-    | variable_declaration_statement	
+    | global_variable_declaration_statement	
 		{ 	
+			// pass 1: skip entirely until ;
+			// pass 2: import with no body
+			// pass 3: import with body
 			ast_declare(&context->ast,			
 				DC_ST_VARIABLE, TOKEN_VARIABLE_NAME, 
-				$variable_declaration_statement->name,
-				$variable_declaration_statement); 
+				$global_variable_declaration_statement->name,
+				$global_variable_declaration_statement); 
 		}
 
 	| import_declaration
-		{ ast_add_declaration(&context->ast, DC_IMPORT, $import_declaration); }
+		{ 
+			// non-native
+			// pass 1: do import pass 1
+			// pass 2: do import pass 2
+			// pass 3: do sequentially pass 1 and pass 2
+
+			// native
+			// pass 1: import
+			// pass 2: no-op
+			// pass 3: no-op
+
+			if ($import_declaration->is_native) {
+				if (context->pass == 1) {
+					ast_add_declaration(&context->ast, DC_IMPORT, $import_declaration);
+				}
+			} else {
+				context_import(context, $import_declaration);
+			}
+		}
 	;
+
+function_or_variable_name
+	: IDENTIFIER
+	| FUNCTION_NAME
+		{ 
+			/* todo assert not full here? */ 
+			$$ = $FUNCTION_NAME->name;
+		}
+	| VARIABLE_NAME
+		{
+			/* todo assert not full here? */
+			$$ = $VARIABLE_NAME->name;
+		}
+	;
+
+type_and_name
+	: type function_or_variable_name
+		{
+			$$.is_full = true;
+			$$.type = $type;
+			$$.name = $function_or_variable_name;
+		}
+	| IDENTIFIER function_or_variable_name
+		{
+			$$.is_full = false;
+			$$.name = $function_or_variable_name;
+		}
+	;
+
 
 function
 	: function_declaration
 	| function_definition
 	;
 
-function_definition
-	: type IDENTIFIER function_parameters
+function_prefix
+	: type_and_name function_parameters
 		{	
 			context_enter(context, SCTX_FUNCTION); 
 
@@ -343,28 +424,64 @@ function_definition
 
 				arl_add(ast_local_declaration, context_current(context)->u_locals, dc);
 			}
-		}
-      compound_statement
-		{
+
+			context_skip(context, 2);
+
 			$$ = allocate(dc_function);
+			$$->is_full		=  $type_and_name.is_full;
 			$$->is_extern	=  false;
-			$$->name 	    =  $IDENTIFIER;
-			$$->return_type =  $type;
+			$$->name 	    =  $type_and_name.name;
+			$$->return_type =  $type_and_name.type;
 			$$->parameters  =  $function_parameters;
-			$$->body 		=  $compound_statement;
+		}
+	;
+
+function_definition
+	: function_prefix compound_statement
+		{		
+			$$ = $function_prefix;
+			$$->body = $compound_statement;
 
 			context_exit(context);
+		}
+	| function_prefix SKIPPED_BODY
+		{
+			$$ = $function_prefix;
+			$$->is_full = false;
+
+			context_exit(context);
+		}
+	| type_and_name SKIPPED_PARAMETERS SKIPPED_BODY
+		{
+			$$ = allocate(dc_function);
+			$$->is_full		=  false;
+			$$->is_extern	=  false;
+			$$->name 	    =  $type_and_name.name;
+			$$->return_type =  $type_and_name.type;
+			$$->parameters.is_c_vararg = false;
+			li_init_empty(dc_function_parameter, $$->parameters.value);
 		}
 	;
 
 function_declaration
-	: EXTERN type IDENTIFIER extern_function_parameters ';'
+	: EXTERN type_and_name extern_function_parameters ';'
 		{
 			$$ = allocate(dc_function);
+			$$->is_full		=  $type_and_name.is_full;
 			$$->is_extern   =  true;
-			$$->name 	    =  $IDENTIFIER;
-			$$->return_type =  $type;
+			$$->name 	    =  $type_and_name.name;
+			$$->return_type =  $type_and_name.type;
 			$$->parameters  =  $extern_function_parameters;
+		}
+	| EXTERN type_and_name SKIPPED_PARAMETERS ';'
+		{
+			$$ = allocate(dc_function);
+			$$->is_full		=  false;
+			$$->is_extern   =  true;
+			$$->name 	    =  $type_and_name.name;
+			$$->return_type =  $type_and_name.type;
+			$$->parameters.is_c_vararg = false;
+			li_init_empty(dc_function_parameter, $$->parameters.value);
 		}
 	;
 
@@ -411,12 +528,29 @@ function_parameter
 		}
 	;
 
+structure_name
+	: IDENTIFIER
+	| STRUCTURE_NAME
+		{ 
+			/* todo assert not full here? */ 
+			$$ = $STRUCTURE_NAME->name;
+		}
+	;
+
 structure_declaration
-	: TYPE IDENTIFIER structure_body ';'
+	: TYPE structure_name structure_body ';'
 		{
 			$$ = allocate(dc_structure);
-			$$->name = $IDENTIFIER;
+			$$->is_full = true;
+			$$->name = $structure_name;
 			$$->member_list = $structure_body;
+		}
+	| TYPE structure_name SKIPPED_BODY ';'
+		{
+			$$ = allocate(dc_structure);
+			$$->is_full = false;
+			$$->name = $structure_name;
+			li_init_empty(dc_structure_member, $$->member_list);
 		}
 	;
 
@@ -441,14 +575,34 @@ structure_member
 		}
 	;
 
+enum_name
+	: IDENTIFIER
+	| ENUM_NAME
+		{ /* todo assert not full here? */
+			$$ = $ENUM_NAME->name;
+		}
+	;
+
 enum_declaration
-	: ENUM IDENTIFIER 
+	: ENUM enum_name 
 		{ context_enter(context, SCTX_ENUM); }
-			enum_body ';'
+	  enum_body ';'
 		{
 			$$ = context_get(context, SCTX_ENUM)->u_enum_context.value;
-			$$->name = $IDENTIFIER;
+			$$->is_full = true;
+			$$->name = $enum_name;
 			$$->member_list = $enum_body;
+
+			context_exit(context);
+		}
+	| ENUM enum_name 
+		{ context_enter(context, SCTX_ENUM); }
+	  SKIPPED_BODY ';'
+	  	{
+			$$ = allocate(dc_enum);
+			$$->is_full = false;
+			$$->name = $enum_name;
+			li_init_empty(dc_enum_member, $$->member_list);
 
 			context_exit(context);
 		}
@@ -514,10 +668,26 @@ enum_member
 		}
 	;
 
+global_variable_declaration_statement
+	: type_and_name '=' expression_block ';'
+		{
+			$$ = allocate(dc_st_variable);
+			$$->is_full = $type_and_name.is_full;
+			$$->type = $type_and_name.type;
+			$$->name = $type_and_name.name;
+			$$->value = $expression_block;
+
+			expect(ast_type_can_merge(&$$->type, &$expression_block.value->properties->type))
+				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
+							ast_type_to_string(&$expression_block.value->properties->type), ast_type_to_string(&$$->type));
+		}
+	;
+
 variable_declaration_statement
 	: type IDENTIFIER '=' expression_block ';'
 		{
 			$$ = allocate(dc_st_variable);
+			$$->is_full = true;
 			$$->type = $type;
 			$$->name = $IDENTIFIER;
 			$$->value = $expression_block;
@@ -539,12 +709,28 @@ variable_declaration_statement
 		}
 	;
 
+alias_name
+	: IDENTIFIER
+	| ALIAS_NAME
+		{ 
+			/* todo assert not full here? */ 
+			$$ = $ALIAS_NAME->name;
+		}
+	;
+
 alias_declaration
-	: ALIAS IDENTIFIER '=' type ';'
+	: ALIAS alias_name '=' type ';'
 		{
 			$$ = allocate(dc_alias);
-			$$->name = $IDENTIFIER;
+			$$->is_full = true;
+			$$->name = $alias_name;
 			$$->target = $type;
+		}
+	| ALIAS alias_name SKIPPED_STATEMENT
+		{
+			$$ = allocate(dc_alias);
+			$$->is_full = false;
+			$$->name = $alias_name;
 		}
 	;
 

@@ -81,6 +81,16 @@ typedef uint8_t_bitset_t flag_context;
 #define flag_context_if_unsigned(this)  bitset_if_set(this, 0)
 
 /**
+ * Set the context to skip mode
+ * if it is currently on pass n
+ */
+#define context_skip(context, n)                    \
+    if (context->pass == SCTX_PASS_##n) {           \
+        context->expect_skip_from = true;           \
+    }
+
+
+/**
  * Parser context level kind
  */
 typedef enum se_context_level_kind {
@@ -104,11 +114,40 @@ typedef struct se_context_level {
 arraylist_declare(se_context_level);
 
 /**
+ * Import pass of the parser
+ * 
+ * Pass 1: Only add declared symbols (type names, function names, variable names, etc.)
+ * Pass 2: Add type bodies and function declarations
+ * Pass 3: Only done for the origin file, adds all data including function bodies
+ */
+typedef enum se_context_pass {
+    SCTX_PASS_1,
+    SCTX_PASS_2,
+    SCTX_PASS_3
+} se_context_pass;
+
+/**
+ * Imported file structure
+ */
+typedef struct se_context_import_file {
+    char* filename;
+    se_context_pass last; /* last pass done on the file */
+} se_context_import_file;
+
+/**
  * Parser context structure
  */
 typedef struct se_context {
     arraylist(se_context_level) stack;
     ast_root ast;
+    se_context_pass pass;
+    arraylist(se_context_import_file_ptr) file_list; /* the list of imported files */
+
+    /* assistant fields for skipping tokens */
+    int skip_pair_count;
+    char skip_until;
+    bool expect_skip_from;
+    /* todo refactor it? doesn't look very well */
 } se_context;
 
 
@@ -179,5 +218,32 @@ se_context_level* context_find(se_context* context, se_context_level_kind kind);
  */
 void context_exit(se_context* context);
 
+/**
+ * Parses the given file and adds data from it (depending on the pass)
+ * to the context's abstract syntax tree
+ * 
+ * @param context Pointer to the parser context
+ * @param filename Path to the file
+ */
+void context_parse(se_context* context, char* filename);
+
+/**
+ * Parses the given file, treating it as the origin
+ * This means that function bodies and other non-header data
+ * from this file will be stored in the abstact syntax tree
+ * 
+ * @param context Pointer to the parser context
+ * @param filename Path to the file
+ */
+void context_parse_origin(se_context* context, char* filename);
+
+/**
+ * Imports the given file, importing only the header data
+ * such as type and function declarations
+ * 
+ * @param context Pointer to the parser context
+ * @param import The import declaration
+ */
+void context_import(se_context* context, dc_import* import);
 
 #endif /* CARBONSTEEL_PARSER_CONTEXT_H */

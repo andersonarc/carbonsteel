@@ -1,0 +1,13 @@
+import a;
+
+extern int puts(byte[] string);
+
+void print(example* ex) {
+    puts(ex->first_name);
+    puts(ex->second_name);
+    if (ex->place_of_birth == country.USA) {
+        puts("USA");
+    } else {
+        puts("Europe");
+    }
+}

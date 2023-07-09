@@ -15,30 +15,9 @@
 #include "syntax/predeclaration.h" /* predeclarations */
 #include "ast/type/primitive.h"    /* primitive types */
 #include "ast/type/type.h"         /* lexical type */
+#include "language/context.h"      /* parser context */
 
     /* typedefs */
-/**
- * Global declaration entry for the
- * hash table
- * 
- * Global declarations are stored and
- * looked up in the global hash table.
- */
-typedef struct ast_declaration {
-    int kind;
-    union {
-        /* warning: do not add any non-pointer types */
-        void* u__any;
-        dc_structure* u_structure;
-        dc_alias* u_alias;
-        dc_enum* u_enum;
-        ast_type_primitive* u_primitive;
-        dc_function* u_function;
-        dc_st_variable* u_variable;
-    };
-} ast_declaration;
-
-
 /**
  * Local named declaration entry for
  * context lookup
@@ -57,6 +36,8 @@ typedef struct ast_local_declaration {
     };
 } ast_local_declaration;
 arraylist_declare(ast_local_declaration);
+/* todo - needs to be reworked, as currently there are declaration conflicts between scopes
+    e.g. for if expressions inside functions */
 
 
 #endif /* CARBONSTEEL_AST_DECLARATION_H */

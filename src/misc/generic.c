@@ -34,6 +34,7 @@ arraylist_define(dc_structure_member);
 arraylist_define(dc_enum_member);
 arraylist_define(dc_function_parameter);
 arraylist_define(dc_import_node);
-arraylist_define(declaration);
+arraylist_define(declaration_ptr);
 arraylist_define(op_unary);
+arraylist_define(se_context_import_file_ptr);
 list_define(ex_constant);

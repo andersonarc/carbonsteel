@@ -2,8 +2,8 @@ build
 draft
 .vscode
 vgcore*
-example/*.c
-example/*.h
+example/**/*.c
+example/**/*.h
 subprojects/boxfort.wrap
 subprojects/boxfort
 subprojects/criterion.wrap

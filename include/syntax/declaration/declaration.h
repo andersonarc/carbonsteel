@@ -35,6 +35,7 @@
  * which have a type and a name
  */
 struct dc_structure {
+    bool is_full; /* marks partial declarations */
     char* name;
     list(dc_structure_member) member_list;
 };
@@ -51,6 +52,7 @@ arraylist_declare_functions(dc_structure_member);
  * which have a name and a numerical value
  */
 struct dc_enum {
+    bool is_full; /* marks partial declarations */
     char* name;
     list(dc_enum_member) member_list;
 };
@@ -68,6 +70,7 @@ arraylist_declare_functions(dc_enum_member);
  * with its own name
  */
 struct dc_alias {
+    bool is_full; /* marks partial declarations */
     char* name;
     ast_type target;
 };
@@ -93,6 +96,7 @@ struct dc_function_parameters {
 };
 
 struct dc_function {
+    bool is_full; /* marks partial declarations */
     char* name;
     bool is_extern;
     st_compound body;
@@ -124,10 +128,14 @@ struct dc_import {
  */
 enum declaration_kind {
     DC_IMPORT, DC_ALIAS, DC_STRUCTURE,
-    DC_ENUM, DC_FUNCTION, DC_ST_VARIABLE
+    DC_ENUM, DC_FUNCTION, DC_ST_VARIABLE,
+    DC_PRIMITIVE
 };
 
 struct declaration {
+    bool is_full; /* marks partial declarations */
+    char* name; /* may be null */
+    int token;
     declaration_kind kind;
     union {
         /* warning: do not add any non-pointer types */
@@ -138,16 +146,9 @@ struct declaration {
         dc_enum* u_enum;
         dc_function* u_function;
         dc_st_variable* u_variable;
+        ast_type_primitive* u_primitive;
     };
 };
-arraylist_declare_functions(declaration);
-
-
-    /* functions */
-
-void new_type_declaration(ast_root* ast, declaration* this, declaration_kind kind, int token_kind, void* value, char* name);
-
-void new_declaration(ast_root* ast, declaration* this, declaration_kind kind, void* value);
 
 
 #endif /* CARBONSTEEL_SYNTAX_DECLARATION_H */

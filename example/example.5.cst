@@ -1,0 +1,17 @@
+void main() {
+    x variable = x("Imya", "Familia");
+    print_x(variable);
+}
+
+x print_x(x this) {
+    puts(this.first_name);
+    puts(this.second_name);
+    return this;
+}
+
+type x {
+    byte[] first_name;
+    byte[] second_name;
+};
+
+extern void puts(byte[] str);

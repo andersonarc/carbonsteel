@@ -1,0 +1,7 @@
+import a;
+
+void swappe(example* ex) {
+    byte[] buffer = ex->first_name;
+    ex->first_name = ex->second_name;
+    ex->second_name = buffer;
+}

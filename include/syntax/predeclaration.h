@@ -59,7 +59,19 @@
 d_struct(se_context_import_file);
     da_pointer(se_context_import_file);
 
+da_pointer(char);
+
         /** LEXICAL TYPES **/
+
+    /* native types */
+da_struct(c_declarator);
+da_struct(c_declaration);
+
+da_enum(c_storage_class_specifier);
+da_enum(c_function_specifier);
+da_enum(c_type_qualifier);
+da_struct(c_type_specifier);
+d_enum(c_type_specifier_kind);
 
     /* type declaration */
 d_struct(ast_type_declaration);
@@ -99,7 +111,7 @@ arraylist_declare_functions(dc_import_node);
     d_struct(dc_import);
 
     /* declaration */
-d_struct(declaration);
+da_struct(declaration);
 da_pointer(declaration);
     d_enum(declaration_kind);
 

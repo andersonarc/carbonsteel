@@ -11,7 +11,9 @@
 #include "codegen/codegen.h" /* code generation */
 #include "misc/memory.h" /* memory allocation */
 #include "language/parser.h" /* parser */
+#include "language/native/parser.h"
 #include "language/lexer.h" /* lexer */
+#include <stdlib.h>
 
     /* functions */
 /**
@@ -21,12 +23,15 @@
  * @param argv Arguments (compiler action and files)
  */
 int main(int argc, char* argv[]) {
-    //myydebug = 1;
+    //cyydebug = 1;
+    arraylist(char_ptr) output_files;
+    arl_init(char_ptr, output_files);
+
+    arraylist(char_ptr) input_files;
+    arl_init(char_ptr, input_files);
+
 
     /* check the arguments */
-    if (argc < 2) {
-        logfe("Please specify an action for the compiler: [forge]");
-    }
     if (strncmp(argv[1], "forge", 5) != 0) {
         loge("Unknown compiler option: %s", argv[1]);
         logfe("Please specify an action for the compiler: [forge]");
@@ -37,23 +42,50 @@ int main(int argc, char* argv[]) {
 
     primitive_list_init();
 
-    /* compile each file */
+    /* add input files */
+    bool output_specified = false;
     iterate_range_single(i, 2, argc) {
+        if (!output_specified) {
+            if (strncmp(argv[i], "-o", sizeof("-o")) == 0) {
+                output_specified = true;
+                continue;
+            }
+            char* filename =  realpath(argv[i], NULL);
+            arl_add(char_ptr, input_files, filename);
+            if (filename == NULL) {
+                logfe("failed to determine the absolute path to %s", argv[i]);
+            }
+        } else {
+            arl_add(char_ptr, output_files, argv[i]);
+        }
+    }
+    if (!output_specified) {
+        iterate_array(i, input_files.size) {
+            size_t length = strlen(input_files.data[i]);
+            char* output_filename = allocate_array(char, length + sizeof(".c") + 1);
+            strncpy(output_filename, input_files.data[i], length);
+            strcpy(output_filename + length, ".c");
+            arl_add(char_ptr, output_files, output_filename);
+        }
+    } else {
+        if (input_files.size != output_files.size) {
+            logfe("There must be an equal number of input and output filenames provided,"
+                "but got %zu input files and %zu output files", input_files.size, output_files.size);
+        }
+    }
+
+    /* compile each file */
+    iterate_array(i, input_files.size) {
         /* parse */
         se_context* context = context_new();
-        context_parse_origin(context, argv[i]);
+        context_parse_origin(context, input_files.data[i]);
 
         /* set output */
-        size_t input_name_length = strlen(argv[i]);
-        char* output_name = allocate_array(char, input_name_length + sizeof(".c"));
-        strncpy(output_name, argv[i], input_name_length);
-        strncpy(&output_name[input_name_length], ".c", 3);
-        FILE* output = fopen(output_name, "w");
+        FILE* output = fopen(output_files.data[i], "w");
         if (output == NULL) {
-            loge("Unable to open file %s for output", output_name);
+            loge("Unable to open file %s for output", output_files.data[i]);
             continue;
         }
-        free(output_name);
 
         /* do code generation */
         codegen(&context->ast, output);

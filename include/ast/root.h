@@ -44,31 +44,33 @@ void ast_init(ast_root* ast);
  * @param[in] ast   Pointer to the AST
  * @param[in] kind  Kind of the declaration
  * @param[in] value Value of the declaration
+ * @param[in] is_native Marks C-Native declarations
+ * @param[in] native_filename May be NULL; For native declarations, denotes the file they belong to
  * 
  * @return Pointer to the created declaration or NULL if it has been merged
  */
-declaration* ast_add_declaration(ast_root* ast, int kind, void* value);
+declaration* ast_add_declaration(ast_root* ast, int kind, void* value, bool is_native, char* native_filename);
 
 /**
  * Creates a new global identifier entry
  * and adds it to the AST lookup table
  * 
- * @param[in] ast   Pointer to the AST
- * @param[in] token Token kind of the identifier
- * @param[in] dc    Pointer to the declaration
+ * @param[in] ast    Pointer to the AST
+ * @param[in] token  Token kind of the identifier
+ * @param[in] ctoken C token kind of the identifier
+ * @param[in] dc     Pointer to the declaration
  */
-void ast_add_identifier(ast_root* ast, int token, declaration* dc);
+void ast_add_identifier(ast_root* ast, int token, int ctoken, declaration* dc);
 
 /**
- * Looks up a declaration by its name and expected kind
+ * Looks up a declaration by its name
  * 
  * @param[in] ast  Pointer to the AST
- * @param[in] kind Kind of the declaration
  * @param[in] name Name of the declaration
  * 
  * @return Pointer to the declaration structure or NULL
  */
-declaration* ast_declaration_lookup(ast_root* ast, declaration_kind kind, char* name);
+declaration* ast_declaration_lookup(ast_root* ast, char* name);
 
 /**
  * Attemps to merge two declarations, either adding extra information
@@ -87,16 +89,36 @@ bool ast_declaration_merge(ast_root* ast, declaration* dc);
  * Alias for creating an AST declaration
  * and a lookup table entry
  * 
- * @param[in] ast   Pointer to the AST
- * @param[in] kind  Kind of the declaration
- * @param[in] token Token kind of the identifier
- * @param[in] name  Name of the identifier
- * @param[in] value Value of the identifier
+ * @param[in] ast    Pointer to the AST
+ * @param[in] kind   Kind of the declaration
+ * @param[in] token  Token kind of the identifier
+ * @param[in] ctoken C token kind of the identifier
+ * @param[in] name   Name of the identifier
+ * @param[in] value  Value of the identifier
  */
-static inline void ast_declare(ast_root* ast, int kind, int token, char* name, void* value) {
-    declaration* dc = ast_add_declaration(ast, kind, value);
+static inline void ast_declare(ast_root* ast, int kind, int token, int ctoken, char* name, void* value) {
+    declaration* dc = ast_add_declaration(ast, kind, value, false, NULL);
     if (dc != NULL) {
-        ast_add_identifier(ast, token, dc);
+        ast_add_identifier(ast, token, ctoken, dc);
+    }
+}
+
+/**
+ * Alias for creating a native AST declaration
+ * and a lookup table entry
+ * 
+ * @param[in] ast    Pointer to the AST
+ * @param[in] kind   Kind of the declaration
+ * @param[in] token  Token kind of the identifier
+ * @param[in] ctoken C token kind of the identifier
+ * @param[in] name   Name of the identifier
+ * @param[in] value  Value of the identifier
+ * @param[in] native_filename Name of the native file the declaration belongs to
+ */
+static inline void ast_declare_native(ast_root* ast, int kind, int token, int ctoken, char* name, void* value, char* native_filename) {
+    declaration* dc = ast_add_declaration(ast, kind, value, true, native_filename);
+    if (dc != NULL) {
+        ast_add_identifier(ast, token, ctoken, dc);
     }
 }
 

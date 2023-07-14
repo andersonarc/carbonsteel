@@ -1,17 +1,27 @@
-void main() {
-    x variable = x("Imya", "Familia");
-    print_x(variable);
+void swap(person* p) {
+    byte[] tmp = p->first_name;
+    p->first_name = p->last_name;
+    p->last_name = tmp;
 }
 
-x print_x(x this) {
-    puts(this.first_name);
-    puts(this.second_name);
-    return this;
+int main() {
+    puts("Enter Name, Surname: ");
+    
+    person p = person(new byte[64](), new byte[64]());
+    scanf("%s %s", p.first_name, p.last_name);
+
+    swap(&p);
+
+    puts(p.last_name);
+    puts(p.first_name);
+
+    return 0;
 }
 
-type x {
+type person {
     byte[] first_name;
-    byte[] second_name;
+    byte[] last_name;
 };
 
-extern void puts(byte[] str);
+extern void puts(byte[] string);
+extern void scanf(byte[] format, byte[] a, byte[] b);

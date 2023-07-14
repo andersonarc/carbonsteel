@@ -38,11 +38,11 @@ void ast_type_of_string(ast_type* this) {
 
 
 void ast_type_of_character(ast_type* this) {
-    ast_type_init(this, AST_TYPE_PRIMITIVE, &primitive_list.data[2]);
+    ast_type_init(this, AST_TYPE_PRIMITIVE, &primitive_list.data[PRIMITIVE_INDEX_CHAR]);
 }
 
 void ast_type_of_boolean(ast_type* this) {
-    ast_type_init(this, AST_TYPE_PRIMITIVE, &primitive_list.data[1]);
+    ast_type_init(this, AST_TYPE_PRIMITIVE, &primitive_list.data[PRIMITIVE_INDEX_BOOLEAN]);
 }
 
 void ast_type_of_float_number(ast_type* this, double value) {

@@ -1,0 +1,10 @@
+import native stdlib;
+import native stdio;
+
+int main() {
+    char[][] names = char[][2](char[256](), char[256]());
+    printf("Enter your details: \n");
+    scanf("%s %s", names[0], names[1]);
+    printf("First name: %s\nSecond name: %s\n", names[0], names[1]);
+    return 0;
+}

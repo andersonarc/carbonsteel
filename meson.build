@@ -20,6 +20,17 @@ main_parser = custom_target('main_parser',
     output: ['main_parser.c', 'main_parser.h'],
     command: [bison, '--defines=main_parser.h', '-o', 'main_parser.c', '@INPUT@'])
 
+native_lexer = custom_target('native_lexer', 
+    build_by_default: true,
+    input: 'src/language/native/lexer.l', 
+    output: ['native_lexer.c', 'native_lexer.h'],
+    command: [flex, '@INPUT@'])
+native_parser = custom_target('native_parser', 
+    build_by_default: true,
+    input: 'src/language/native/parser.y', 
+    output: ['native_parser.c', 'native_parser.h'],
+    command: [bison, '--defines=native_parser.h', '-o', 'native_parser.c', '@INPUT@'])
+
 # c compiler arguments
 c_args = ['-Wno-unused-function']
 
@@ -51,11 +62,12 @@ src = files('src/main.c',
             'src/syntax/expression/number.c',
             'src/syntax/expression/operator.c',
             'src/syntax/expression/postfix.c',
-            'src/syntax/expression/unary.c')
+            'src/syntax/expression/unary.c',
+            'src/language/native/declaration.c')
 include = include_directories('include')
 
 # compile executable
-executable('carbonsteel', [src, main_parser, main_lexer],
+executable('carbonsteel', [src, main_parser, main_lexer, native_parser, native_lexer],
     include_directories: include,
     dependencies: [ctool, math],
     c_args: c_args)

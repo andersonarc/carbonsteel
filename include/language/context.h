@@ -64,7 +64,7 @@ struct enum_context {
  * 
  * [] is the default value
  * 
- *  0) [signed]/unsigned (only for integers) 
+ *  0) [signed]/unsigned (only for integers)
  * 
  * @param[in] this The flag context level
  * 
@@ -217,6 +217,15 @@ se_context_level* context_find(se_context* context, se_context_level_kind kind);
  * @param context Pointer to the parser context
  */
 void context_exit(se_context* context);
+
+/**
+ * Parses the given file and adds data from it (depending on the pass)
+ * to the context's abstract syntax tree
+ * 
+ * @param context Pointer to the parser context
+ * @param filename Path to the file
+ */
+void context_parse_native(se_context* context, char* filename);
 
 /**
  * Parses the given file and adds data from it (depending on the pass)

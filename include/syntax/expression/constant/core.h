@@ -42,8 +42,8 @@
 enum ex_constant_kind {
     /* primitive values */
     EX_C_BOOLEAN,
-    EX_C_BYTE, EX_C_SHORT, EX_C_INT, EX_C_LONG,
-    EX_C_UBYTE, EX_C_USHORT, EX_C_UINT, EX_C_ULONG,
+    EX_C_CHAR, EX_C_BYTE, EX_C_SHORT, EX_C_INT, EX_C_LONG,
+    EX_C_UCHAR, EX_C_UBYTE, EX_C_USHORT, EX_C_UINT, EX_C_ULONG,
     EX_C_FLOAT, EX_C_DOUBLE,
     
     /* containers of primitive values */

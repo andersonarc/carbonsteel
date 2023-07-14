@@ -134,8 +134,11 @@ enum declaration_kind {
 
 struct declaration {
     bool is_full; /* marks partial declarations */
+    bool is_native; /* native declarations are not generated in code */
+    arraylist(char_ptr) native_filename_list; /* a fix for header guard absence in native files */
     char* name; /* may be null */
     int token;
+    int ctoken;
     declaration_kind kind;
     union {
         /* warning: do not add any non-pointer types */
@@ -149,6 +152,7 @@ struct declaration {
         ast_type_primitive* u_primitive;
     };
 };
+arraylist_declare_functions(declaration);
 
 
 #endif /* CARBONSTEEL_SYNTAX_DECLARATION_H */

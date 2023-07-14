@@ -150,7 +150,61 @@ char* ast_type_to_string(ast_type* value) {
             if (value->u_structure->name != NULL) {
                 name = value->u_structure->name;
             } else {
-                name = "<anonymous structure>";
+                /* todo: move it to another method */
+                list(dc_structure_member) members = value->u_structure->member_list;
+                char* prefix = "type { ";
+                size_t internal_buffer_size = strlen(prefix);
+
+                char** member_names = allocate_array(char**, members.size);
+                size_t* member_name_sizes = allocate_array(size_t, members.size);
+
+                for (int i = 0; i < members.size; i++) {
+                    char* internal_type = ast_type_to_string(&members.data[i].type);
+                    member_name_sizes[i] = strlen(internal_type);
+                    member_name_sizes[i] += 1;
+                    member_name_sizes[i] += strlen(members.data[i].name);
+                    if (i != members.size - 1) {
+                        member_name_sizes[i] += 2;
+                    }
+                    internal_buffer_size += member_name_sizes[i];
+
+                    member_names[i] = allocate_array(char*, member_name_sizes[i]);
+
+                    strncpy(member_names[i], internal_type, member_name_sizes[i]);
+                    member_name_sizes[i] = strlen(internal_type);
+                    free(internal_type);
+
+                    member_names[i][member_name_sizes[i]] = ' ';
+                    member_name_sizes[i] += 1;
+
+                    strcpy(member_names[i] + member_name_sizes[i], members.data[i].name);
+                    member_name_sizes[i] += strlen(members.data[i].name);
+
+                    if (i != members.size - 1) {
+                        member_names[i][member_name_sizes[i]] = ',';
+                        member_name_sizes[i] += 1;
+                        member_names[i][member_name_sizes[i]] = ' ';
+                        member_name_sizes[i] += 1;
+                    }
+                }
+
+                char* postfix = " };";
+                internal_buffer_size += strlen(postfix);
+
+                char* internal_buffer = allocate_array(char, internal_buffer_size + 1);
+                strcpy(internal_buffer, prefix);
+                internal_buffer_size = strlen(prefix);
+
+                for (int i = 0; i < members.size; i++) {
+                    strncpy(internal_buffer + internal_buffer_size, member_names[i], member_name_sizes[i]);
+                    internal_buffer_size += member_name_sizes[i];
+                }
+
+                strcpy(internal_buffer + internal_buffer_size, postfix);
+                internal_buffer_size += strlen(postfix);
+                internal_buffer[internal_buffer_size] = 0;
+
+                name = internal_buffer;
             }
             break;
 

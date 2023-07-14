@@ -74,7 +74,7 @@ iapi_init_union_from_extern(B, basic, char*, STRING, string)  {
         ast_type_of_string(&this->type);
     }
     iset_constant(array) {
-        ex_constant_from_array(&this->constant, EX_C_BYTE, value, strlen(value));
+        ex_constant_from_array(&this->constant, EX_C_CHAR, value, strlen(value));
     }
 }
 

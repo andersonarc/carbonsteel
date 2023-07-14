@@ -10,6 +10,11 @@
 #include "language/context.h" /* this */
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <dirent.h>
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h" /* memory allocation */
 #include "language/parser.h" /* parser */
@@ -151,16 +156,20 @@ void context_exit(se_context* context) {
 
 
 /**
- * Translates an import statement to a full absolute path\
+ * Translates an import statement into a relative filename
  * 
  * @param import The import statement
  * 
- * @return Absolute path to the file, allocated with malloc
+ * @return Relative path to the file, allocated with malloc
  */
 char* import_to_filename(dc_import* import) {
+    char* extension;
     if (import->is_native) {
-        return NULL; /* todo - native import parser via PATH */
+        extension = ".h";
+    } else {
+        extension = ".cst";
     }
+    size_t extension_length = strlen(extension);
 
     /* firstly, resolve the relative filename from path segments */
     size_t total_length = 0;
@@ -170,7 +179,7 @@ char* import_to_filename(dc_import* import) {
         /* the trailing '/' is used for the null terminator */
     }
     /* account for the extension */
-    total_length += 4; /* 5 ".cst" - 1 "/" = 4 */
+    total_length += extension_length;
 
     /* start merging the segments into an allocated buffer */
     char* filename = malloc(sizeof(char) * total_length);
@@ -186,13 +195,82 @@ char* import_to_filename(dc_import* import) {
         offset += 1;
     }
     /* append the extension */
-    strncpy(&filename[offset - 1], ".cst", 5);
+    strncpy(&filename[offset - 1], extension, extension_length);
+    filename[offset - 1 + extension_length] = 0;
 
-    /* translate to an absolute path */
-    char* absolute = realpath(filename, NULL);
-    free(filename);
+    /* return */
+    return filename;
+}
 
-    return absolute;
+
+/**
+ * Parses the given file and adds data from it (depending on the pass)
+ * to the context's abstract syntax tree
+ * 
+ * @param context Pointer to the parser context
+ * @param filename Path to the file
+ */
+void context_parse_native(se_context* context, char* filename) {
+    logd("native parsing %s on pass %d", filename, context->pass + 1);
+
+    /* create the pipes */
+    int pd_in[2];
+    int pd_out[2];
+    if (pipe(pd_in) != 0 || pipe(pd_out) != 0) {
+        logfe("import: unable to create a pipe");
+    }
+    
+    /* start the gcc preprocessor */
+    pid_t child = fork();
+    if (child < 0) {
+        logfe("import: unable to create a child process");
+    }
+    if (child == 0) {
+        logd("forked successfully");
+        close(pd_in[1]);
+        dup2(pd_in[0], 0);
+
+        close(pd_out[0]);
+        dup2(pd_out[1], 1);
+        
+        if (execlp("gcc", "gcc", "-E", "-", NULL) != 0) {
+            logfe("failed to start gcc preprocessor")
+        }
+
+        exit(0);
+    }
+    close(pd_in[0]);
+    close(pd_out[1]);
+
+    /* write to gcc input */
+    write(pd_in[1], "#include <", strlen("#include <"));
+    write(pd_in[1], filename, strlen(filename));
+    write(pd_in[1], ">", strlen(">"));
+    close(pd_in[1]);
+    
+    /* read the preprocessed output */
+    FILE* input = fdopen(pd_out[0], "r");
+    if (input == NULL) {
+        error_internal("import: unable to open the preprocessor output");
+    }
+
+    /* initialize the scanner */
+    yyscan_t scanner;
+    if (cyylex_init(&scanner) != 0) {
+        error_internal("import: unable to initizize the yacc scanner");
+    }
+    cyyset_in(input, scanner);
+
+    /* parse */
+    if (cyyparse(scanner, context) != 0) {
+        error_internal("import: parsing file %s failed", filename);
+    }
+
+    /* free */
+    cyylex_destroy(scanner);
+    fclose(input);
+
+    logd("successful");
 }
 
 
@@ -247,6 +325,9 @@ void context_parse_origin(se_context* context, char* filename_) {
 
     /* ensure the path is absolute */
     char* filename = realpath(filename_, NULL);
+    if (filename == NULL) {
+        logfe("failed to determine the absolute path to %s", filename_);
+    }
     logd("starting the parser at %s", filename);
 
     /* mark the file as imported to prevent self-imports */
@@ -281,8 +362,34 @@ void context_parse_origin(se_context* context, char* filename_) {
  */
 void context_import(se_context* context, dc_import* import) {
     /* resolve the path */
-    char* filename = import_to_filename(import);
-    size_t filename_length = strlen(filename);
+    char* relative_name = import_to_filename(import);
+    size_t relative_length = strlen(relative_name);
+
+    char* filename;
+    size_t filename_length;
+    
+    if (import->is_native) {
+        filename = relative_name;
+        filename_length = relative_length;
+    } else {
+        char* parent_name = arraylist_last(context->file_list)->filename;
+        size_t parent_length = strlen(parent_name);
+
+        /* a workaround to find the parent directory of the origin file */
+        while (parent_length >= 0 && 
+            parent_name[parent_length] != '/' &&
+            parent_name[parent_length] != '\\'
+        ) {
+            parent_length--;
+        }
+        parent_length++;
+
+        /* merge the file and directory paths */
+        filename_length = parent_length + relative_length + 1;
+        filename = allocate_array(char, filename_length);
+        strncpy(filename, parent_name, parent_length);
+        strncpy(filename + parent_length, relative_name, relative_length);
+    }
 
     /* handle repeating (circular/self) imports */
     for (int i = 0; i < context->file_list.size; i++) {
@@ -301,7 +408,15 @@ void context_import(se_context* context, dc_import* import) {
     arl_add(se_context_import_file_ptr, context->file_list, import_file);
     
     /* parse the file */
-    if (context->pass != SCTX_PASS_3) {
-        context_parse(context, filename);
+    
+    if (import->is_native) {
+        if (context->pass == SCTX_PASS_1) {
+            ast_add_declaration(&context->ast, DC_IMPORT, import, false, NULL);
+            context_parse_native(context, filename);
+        }
+    } else {
+        if (context->pass != SCTX_PASS_3) {
+            context_parse(context, filename);
+        }
     }
 }

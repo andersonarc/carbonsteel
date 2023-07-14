@@ -11,6 +11,7 @@
 #include "syntax/predeclaration.h"  /* predeclarations */
 #include "syntax/declaration/declaration.h"  /* declarations */
 #include "syntax/statement/statement.h"  /* statement */
+#include "language/native/types.h"
 
     /* generic implementations */
 list_define(st_compound_item);
@@ -35,6 +36,14 @@ arraylist_define(dc_enum_member);
 arraylist_define(dc_function_parameter);
 arraylist_define(dc_import_node);
 arraylist_define(declaration_ptr);
+arraylist_define(declaration);
 arraylist_define(op_unary);
 arraylist_define(se_context_import_file_ptr);
+arraylist_define(char_ptr)
+arraylist_define(c_declarator);
+arraylist_define(c_declaration);
+arraylist_define(c_storage_class_specifier);
+arraylist_define(c_function_specifier);
+arraylist_define(c_type_qualifier);
+arraylist_define(c_type_specifier);
 list_define(ex_constant);

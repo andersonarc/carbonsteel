@@ -51,6 +51,7 @@
 
 	#include "language/context.h" /* parser context */
 	#include "language/parser.h"  /* parser header */
+	#include "language/native/parser.h"  /* parser header */
 	#include "misc/union.h" 	  /* union initialization */
 	#include "ast/type/check.h"	  /* type checking */
 	#include "ast/type/resolve.h" /* default type values */
@@ -305,7 +306,7 @@ declaration_
 			// pass 2: import the members
 			// pass 3: pass 2
 			ast_declare(&context->ast, 
-				DC_STRUCTURE, TOKEN_STRUCTURE_NAME, 
+				DC_STRUCTURE, TOKEN_STRUCTURE_NAME, CTOKEN_STRUCTURE_NAME, 
 				$structure_declaration->name,
 				$structure_declaration); 
 		}
@@ -316,7 +317,7 @@ declaration_
 			// pass 2: import the members
 			// pass 3: pass 2
 			ast_declare(&context->ast,
-				DC_ENUM, TOKEN_ENUM_NAME, 
+				DC_ENUM, TOKEN_ENUM_NAME, CTOKEN_ENUM_NAME,
 				$enum_declaration->name,
 				$enum_declaration); 
 		}
@@ -327,7 +328,7 @@ declaration_
 			// pass 2: import the target
 			// pass 3: pass 2
 			ast_declare(&context->ast,
-				DC_ALIAS, TOKEN_ALIAS_NAME, 
+				DC_ALIAS, TOKEN_ALIAS_NAME, CTOKEN_ALIAS_NAME,
 				$alias_declaration->name,
 				$alias_declaration); 
 		}
@@ -338,7 +339,7 @@ declaration_
 			// pass 2: import with no body
 			// pass 3: import with body
 			ast_declare(&context->ast, 			
-				DC_FUNCTION, TOKEN_FUNCTION_NAME, 
+				DC_FUNCTION, TOKEN_FUNCTION_NAME, CTOKEN_FUNCTION_NAME,
 				$function->name,
 				$function); 
 		}
@@ -349,30 +350,18 @@ declaration_
 			// pass 2: import with no body
 			// pass 3: import with body
 			ast_declare(&context->ast,			
-				DC_ST_VARIABLE, TOKEN_VARIABLE_NAME, 
+				DC_ST_VARIABLE, TOKEN_VARIABLE_NAME, CTOKEN_VARIABLE_NAME,
 				$global_variable_declaration_statement->name,
 				$global_variable_declaration_statement); 
 		}
 
 	| import_declaration
 		{ 
-			// non-native
 			// pass 1: do import pass 1
 			// pass 2: do import pass 2
 			// pass 3: do sequentially pass 1 and pass 2
 
-			// native
-			// pass 1: import
-			// pass 2: no-op
-			// pass 3: no-op
-
-			if ($import_declaration->is_native) {
-				if (context->pass == 1) {
-					ast_add_declaration(&context->ast, DC_IMPORT, $import_declaration);
-				}
-			} else {
-				context_import(context, $import_declaration);
-			}
+			context_import(context, $import_declaration);
 		}
 	;
 
@@ -680,6 +669,13 @@ global_variable_declaration_statement
 			expect(ast_type_can_merge(&$$->type, &$expression_block.value->properties->type))
 				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
 							ast_type_to_string(&$expression_block.value->properties->type), ast_type_to_string(&$$->type));
+		}
+	| type_and_name SKIPPED_STATEMENT
+		{
+			$$ = allocate(dc_st_variable);
+			$$->is_full = false;
+			$$->type = $type_and_name.type;
+			$$->name = $type_and_name.name;
 		}
 	;
 
@@ -1057,7 +1053,7 @@ type
 		}
 	| UNSIGNED
 		{
-			context_enter(context, SCTX_FLAG); //todo potential issue - context not exited?
+			context_enter(context, SCTX_FLAG);
 			flag_context_set_unsigned(context_current(context)->u_flag_context);
 		}
 	  type_recursive

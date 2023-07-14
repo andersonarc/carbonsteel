@@ -40,26 +40,28 @@
 #define PRIMITIVE_INDEX_VOID   0
 #define PRIMITIVE_INDEX_BOOLEAN   1
 
-#define _PRIMITIVE_INDEX_MIN_NUMBER  PRIMITIVE_INDEX_BYTE
-    #define _PRIMITIVE_INDEX_MIN_INTEGER PRIMITIVE_INDEX_BYTE
-        #define _PRIMITIVE_INDEX_MIN_SIGNED  PRIMITIVE_INDEX_BYTE
-            #define PRIMITIVE_INDEX_BYTE   2
-            #define PRIMITIVE_INDEX_SHORT  3
-            #define PRIMITIVE_INDEX_INT    4
-            #define PRIMITIVE_INDEX_LONG   5
+#define _PRIMITIVE_INDEX_MIN_NUMBER  PRIMITIVE_INDEX_CHAR
+    #define _PRIMITIVE_INDEX_MIN_INTEGER PRIMITIVE_INDEX_CHAR
+        #define _PRIMITIVE_INDEX_MIN_SIGNED  PRIMITIVE_INDEX_CHAR
+            #define PRIMITIVE_INDEX_CHAR   2
+            #define PRIMITIVE_INDEX_BYTE   3
+            #define PRIMITIVE_INDEX_SHORT  4
+            #define PRIMITIVE_INDEX_INT    5
+            #define PRIMITIVE_INDEX_LONG   6
         #define _PRIMITIVE_INDEX_MAX_SIGNED   PRIMITIVE_INDEX_LONG
 
-        #define _PRIMITIVE_INDEX_MIN_UNSIGNED PRIMITIVE_INDEX_UBYTE
-            #define PRIMITIVE_INDEX_UBYTE  6
-            #define PRIMITIVE_INDEX_UINT   7
-            #define PRIMITIVE_INDEX_USHORT 8
-            #define PRIMITIVE_INDEX_ULONG  9
+        #define _PRIMITIVE_INDEX_MIN_UNSIGNED PRIMITIVE_INDEX_UCHAR
+            #define PRIMITIVE_INDEX_UCHAR  7
+            #define PRIMITIVE_INDEX_UBYTE  8
+            #define PRIMITIVE_INDEX_USHORT 9
+            #define PRIMITIVE_INDEX_UINT   10
+            #define PRIMITIVE_INDEX_ULONG  11
         #define _PRIMITIVE_INDEX_MAX_UNSIGNED PRIMITIVE_INDEX_ULONG
     #define _PRIMITIVE_INDEX_MAX_INTEGER  PRIMITIVE_INDEX_ULONG
 
     #define _PRIMITIVE_INDEX_MIN_FLOATING PRIMITIVE_INDEX_FLOAT
-        #define PRIMITIVE_INDEX_FLOAT  10
-        #define PRIMITIVE_INDEX_DOUBLE 11
+        #define PRIMITIVE_INDEX_FLOAT  12
+        #define PRIMITIVE_INDEX_DOUBLE 13
     #define _PRIMITIVE_INDEX_MAX_FLOATING PRIMITIVE_INDEX_DOUBLE
 #define _PRIMITIVE_INDEX_MAX_NUMBER   PRIMITIVE_INDEX_DOUBLE
 
@@ -82,6 +84,7 @@ struct ast_type_primitive {
     char* code_name;
     size_t size;
     unsigned long long capacity;
+    bool is_allowed_in_native;
 };
 
     /* global variables */

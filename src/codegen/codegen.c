@@ -732,9 +732,11 @@ cgd_dc(function) {
 cgd_dc(import) {
     if (dc->is_native) {
         out(string)("#include <");
-        iterate_array(i, dc->path.size) {
+        iterate_array(i, dc->path.size - 1) {
             out(string)(dc->path.data[i]);
+            out(char)('/');
         }
+        out(string)(dc->path.data[dc->path.size - 1]);
         out(string)(".h>\n");
     }
 }
@@ -760,11 +762,14 @@ cgtask_declare_ast(definitions) {
 
     iterate_array(i, ast->declaration_list.size) {
         declaration dc = *ast->declaration_list.data[i];
+        if (dc.is_native) continue;
+
         switch (dc.kind) {
             case DC_IMPORT:
             case DC_STRUCTURE:
             case DC_ALIAS:
             case DC_ENUM:
+            case DC_PRIMITIVE:
                 break;
 
             case DC_FUNCTION:
@@ -787,6 +792,8 @@ cgtask_declare_ast(declarations) {
 
     iterate_array(i, ast->declaration_list.size) {
         declaration dc = *ast->declaration_list.data[i];
+        if (dc.is_native) continue;
+
         switch (dc.kind) {
             case DC_IMPORT:
                 cg(import)(dc.u_import);
@@ -803,6 +810,7 @@ cgtask_declare_ast(declarations) {
                 cg(enum)(dc.u_enum);
                 break;
 
+            case DC_PRIMITIVE:
             case DC_FUNCTION:
             case DC_ST_VARIABLE:
                 break;
@@ -819,6 +827,7 @@ cgtask_declare_ast(declarations) {
             case DC_STRUCTURE:
             case DC_ALIAS:
             case DC_ENUM:
+            case DC_PRIMITIVE:
                 break;
 
             case DC_FUNCTION:

@@ -251,9 +251,9 @@ bool ast_type_is_equal(ast_type* a, ast_type* b) {
 
         otherwise_error
     }*/
-    logfe("fixme-immediately");
     /* TODO - TEMPORARY WORKAROUND. Why a.u__any != b.u__any??*/
-    //if (a->u__any != b->u__any) return false;
+    // todo resolve issue with merge types not being equal
+    if (a->u__any != b->u__any) return false;
     if (a->level_list.size != b->level_list.size) return false;
 
     iterate_array(i, a->level_list.size) {

@@ -13,6 +13,9 @@
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h"     /* memory allocation */
 #include "language/parser.h" /* parser */
+#include "language/native/parser.h" /* native parser */
+#include "language/native/declaration.h"
+#include "ast/type/check.h"
 
 /**
  * @todo
@@ -38,13 +41,8 @@ void ast_init(ast_root* ast) {
      * Use ast_declaration instead of void*
      */
     iterate_array(i, primitive_list.size) {
-        declaration* dc = allocate(declaration);
-        dc->is_full = true;
-        dc->name = primitive_list.data[i].name;
-        dc->token = TOKEN_PRIMITIVE_NAME;
-        dc->kind = DC_PRIMITIVE;
-        dc->u_primitive = &primitive_list.data[i];
-        ast_add_identifier(ast, TOKEN_PRIMITIVE_NAME, dc);
+        ast_declare(ast, DC_PRIMITIVE, TOKEN_PRIMITIVE_NAME, CTOKEN_PRIMITIVE_NAME, 
+            primitive_list.data[i].name, &primitive_list.data[i]);
     }
 }
 
@@ -57,13 +55,20 @@ void ast_init(ast_root* ast) {
  * @param[in] ast   Pointer to the AST
  * @param[in] kind  Kind of the declaration
  * @param[in] value Value of the declaration
+ * @param[in] is_native Marks C-Native declarations
+ * @param[in] native_filename May be NULL; For native declarations, denotes the file they belong to
  * 
  * @return Pointer to the created declaration or NULL if it has been merged
  */
-declaration* ast_add_declaration(ast_root* ast, int kind, void* value) {
+declaration* ast_add_declaration(ast_root* ast, int kind, void* value, bool is_native, char* native_filename) {
     declaration* dc = allocate(declaration);
     dc->kind = kind;
     dc->u__any = value;
+    dc->is_native = is_native;
+    if (is_native) {
+        arraylist_init_with(char_ptr)(&dc->native_filename_list, native_filename);   
+    }
+    
     switch (dc->kind) {
         case DC_IMPORT:
             dc->name = NULL;
@@ -76,7 +81,6 @@ declaration* ast_add_declaration(ast_root* ast, int kind, void* value) {
             break;
 
         case DC_ALIAS:
-            /* todo also skip alias definitions on pass 1. only include the identifier names */
             dc->name = dc->u_alias->name;
             dc->is_full = dc->u_alias->is_full;
             break;
@@ -96,7 +100,19 @@ declaration* ast_add_declaration(ast_root* ast, int kind, void* value) {
             dc->is_full = dc->u_variable->is_full;
             break;
 
+        case DC_PRIMITIVE:
+            dc->name = dc->u_primitive->name;
+            dc->is_full = true;
+            break;
+
         otherwise_error
+    }
+
+    if (is_native) {
+        logd("adding new native declaration %s", dc->name);
+        // arl_add(declaration_ptr, ast->declaration_list, dc);
+        /* todo should native declarations be added to the ast or no? */
+        return dc; /* allow duplicates for native declarations */
     }
 
     if (dc->name != NULL) {
@@ -117,12 +133,14 @@ declaration* ast_add_declaration(ast_root* ast, int kind, void* value) {
  * Creates a new global identifier entry
  * and adds it to the AST lookup table
  * 
- * @param[in] ast   Pointer to the AST
- * @param[in] token Token kind of the identifier
- * @param[in] dc    Pointer to the declaration
+ * @param[in] ast    Pointer to the AST
+ * @param[in] token  Token kind of the identifier
+ * @param[in] ctoken C token kind of the identifier
+ * @param[in] dc     Pointer to the declaration
  */
-void ast_add_identifier(ast_root* ast, int token, declaration* dc) {
+void ast_add_identifier(ast_root* ast, int token, int ctoken, declaration* dc) {
     dc->token = token;
+    dc->ctoken = ctoken;
 
     ENTRY entry = {
         .data = (void*) dc,
@@ -132,7 +150,48 @@ void ast_add_identifier(ast_root* ast, int token, declaration* dc) {
     /* check if the identifier is already declared */
     ENTRY* existing;
     if (hsearch_r(entry, FIND, &existing, ast->hash_table) != 0) {
-        error_syntax("identifier \"%s\" already exists", entry.key)
+        declaration* dc_ex = (declaration*) existing->data;
+
+        /* case 1: necessary merge */
+        if (!dc_ex->is_full && dc->is_full) {
+            logd("ImportGuard: redefining %s with a full structure",
+                dc->name);
+            ast_declaration_merge(ast, dc);
+            return;
+        }
+
+        /* case 2: usual for CST primitives like uchar, ushort, etc. */
+        if (!dc_ex->is_native && dc->is_native) {
+            ast_type ex = cst_declaration_to_type(*dc_ex);
+            ast_type par = cst_declaration_to_type(*dc);
+            char *exstr, *parstr;
+            logd("ImportGuard: attempt to redefine a non-native type from native code, actual type: original <%s> new <%s>",
+                exstr = ast_type_to_string(&ex), parstr = ast_type_to_string(&par));
+            free(exstr);
+            free(parstr);
+
+            if (ast_type_is_equal(&ex, &par)) {
+                logd("ImportGuard: allowing this, because types are equal");
+                return;
+            }
+        }
+
+        /* case 3: non-native identifier conflict */
+        if (!dc_ex->is_native || !dc->is_native) {
+            error_syntax("identifier \"%s\" already exists", entry.key)
+            return;
+        }
+
+        /* case 4: native merge from different files*/
+        if (dc->native_filename_list.size != 1) {
+            logfe("expected a native filename list of 1 for new declarations, got %zu",
+                    dc->native_filename_list.size);
+        }
+        char* this_filename = dc->native_filename_list.data[0];
+        logd("ImportGuard: adding %s to list of declarations for %s instead of redefinition",
+            dc->name, this_filename);
+        arraylist_add(char_ptr)(&dc_ex->native_filename_list, this_filename);
+        return;
     }
     
     /* if it is not declared, add the entry */
@@ -143,26 +202,25 @@ void ast_add_identifier(ast_root* ast, int token, declaration* dc) {
 
 
 /**
- * Looks up a declaration by its name and expected kind
+ * Looks up a declaration by its name
  * 
  * @param[in] ast  Pointer to the AST
- * @param[in] kind Kind of the declaration
  * @param[in] name Name of the declaration
  * 
  * @return Pointer to the declaration structure or NULL
  */
-declaration* ast_declaration_lookup(ast_root* ast, declaration_kind kind, char* name) {
-    size_t length = strlen(name);
+declaration* ast_declaration_lookup(ast_root* ast, char* name) {
+    ENTRY entry = {
+        .data = NULL,
+        .key = name
+    };
 
-    iterate_array(i, ast->declaration_list.size) {
-        declaration* dc = ast->declaration_list.data[i];
-        if (dc->kind != kind) continue;
-        
-        char* current_name = dc->name;
-        if (strncmp(name, current_name, length) == 0) return dc;
+    ENTRY* existing;
+    if (hsearch_r(entry, FIND, &existing, ast->hash_table) != 0) {
+        return (declaration*) existing->data;
+    } else {
+        return NULL;
     }
-
-    return NULL;
 }
 
 
@@ -178,7 +236,7 @@ declaration* ast_declaration_lookup(ast_root* ast, declaration_kind kind, char* 
  *          true if the declaration has been merged successfully
  */
 bool ast_declaration_merge(ast_root* ast, declaration* dc) {
-    declaration* dc_parent = ast_declaration_lookup(ast, dc->kind, dc->name);
+    declaration* dc_parent = ast_declaration_lookup(ast, dc->name);
     if (dc_parent == NULL && dc->name != NULL) {
         logd("adding new declaration %s", dc->name);
         return false;

@@ -12,6 +12,11 @@
  *  Main lexical analyzer rules for Flex
  */
 
+/* FS  (f|F|l|L) */
+/* IS  (((u|U)(l|L|ll|LL)?)|((l|L|ll|LL)(u|U)?)) */
+/* CP  (u|U|L) */
+/* SP  (u8|u|U|L) */
+
     /* numbers and characters */
 OCT    [0-7]
 DEC    [0-9]
@@ -36,7 +41,6 @@ HPREF  (0[xX])
 WS     [ \t\v\f]
 
 %{
-
         /* includes */
     #include "language/parser.h" /* parser */
     #include "ast/root.h"    /* syntax tree */
@@ -388,6 +392,7 @@ WS     [ \t\v\f]
  * @return Always 1
  */
 int yywrap(yyscan_t yyscanner) {
+    //todo use it in imports?
     return 1;
 }
 

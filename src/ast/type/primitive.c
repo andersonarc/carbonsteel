@@ -28,12 +28,14 @@ list(ast_type_primitive) primitive_list;
  * @param[in] _size       Primitive type size
  * @param[in] _capacity   Maximum numerical value of the type
  *                          or 0 if inappicable
+ * @param[in] _is_allowed_in_native Some primitives are not primitives in C
  */
-#define ast_declare_primitive(_index_name, _name, _code_name, _size, _capacity) \
+#define ast_declare_primitive(_index_name, _name, _code_name, _size, _capacity, _is_allowed_in_native) \
     primitive_list.data[PRIMITIVE_INDEX_##_index_name].name = _name;            \
     primitive_list.data[PRIMITIVE_INDEX_##_index_name].code_name = _code_name;  \
     primitive_list.data[PRIMITIVE_INDEX_##_index_name].size = _size;            \
-    primitive_list.data[PRIMITIVE_INDEX_##_index_name].capacity = _capacity;
+    primitive_list.data[PRIMITIVE_INDEX_##_index_name].capacity = _capacity;    \
+    primitive_list.data[PRIMITIVE_INDEX_##_index_name].is_allowed_in_native = _is_allowed_in_native;
 
     /* functions */
 /**
@@ -41,22 +43,26 @@ list(ast_type_primitive) primitive_list;
  * with predefined type structures
  */
 void primitive_list_init() {
+    /* ! DO NOT CHANGE THE ORDER, PRIMITIVE LOOKUP DEPENDS ON IT ! */
+    //todo - add "c" primitive types that codegen to native C types
     li_init(ast_type_primitive, primitive_list, _PRIMITIVE_INDEX_MAX + 1);
-    ast_declare_primitive(VOID,   "void",   "void",     0, 0);
-    ast_declare_primitive(BOOLEAN,   "bool",   "int8_t",   1, 0);
+    ast_declare_primitive(VOID,   "void",   "void",     0, 0, true);
+    ast_declare_primitive(BOOLEAN,   "bool",   "int8_t",   1, 0, false);
 
-    ast_declare_primitive(BYTE,   "byte",   "int8_t",   1, __INT8_MAX__);
-    ast_declare_primitive(SHORT,  "short",  "int16_t",  2, __INT16_MAX__);
-    ast_declare_primitive(INT,    "int",    "int32_t",  4, __INT32_MAX__);
-    ast_declare_primitive(LONG,   "long",   "int64_t",  8, __INT64_MAX__);
+    ast_declare_primitive(CHAR,   "char",   "int8_t",   1, __INT8_MAX__, true);
+    ast_declare_primitive(BYTE,   "byte",   "int8_t",   1, __INT8_MAX__, false);
+    ast_declare_primitive(SHORT,  "short",  "int16_t",  2, __INT16_MAX__, true);
+    ast_declare_primitive(INT,    "int",    "int32_t",  4, __INT32_MAX__, true);
+    ast_declare_primitive(LONG,   "long",   "int64_t",  8, __INT64_MAX__, true);
 
-    ast_declare_primitive(UBYTE,  "ubyte",   "uint8_t",  1, __UINT8_MAX__);
-    ast_declare_primitive(USHORT, "ushort",  "uint16_t", 2, __UINT16_MAX__);
-    ast_declare_primitive(UINT,   "uint",    "uint32_t", 4, __UINT32_MAX__);
-    ast_declare_primitive(ULONG,  "ulong",   "uint64_t", 8, __UINT64_MAX__);
+    ast_declare_primitive(UCHAR,  "uchar",   "uint8_t",  1, __UINT8_MAX__, false);
+    ast_declare_primitive(UBYTE,  "ubyte",   "uint8_t",  1, __UINT8_MAX__, false);
+    ast_declare_primitive(USHORT, "ushort",  "uint16_t", 2, __UINT16_MAX__, false);
+    ast_declare_primitive(UINT,   "uint",    "uint32_t", 4, __UINT32_MAX__, false);
+    ast_declare_primitive(ULONG,  "ulong",   "uint64_t", 8, __UINT64_MAX__, false);
 
-    ast_declare_primitive(FLOAT,  "float",  "float",    4, 16777216UL /* 2 ^ 24 (mantissa bits) */);
-    ast_declare_primitive(DOUBLE, "double", "double",   8, 9007199254740992UL /* 2 ^ 53 (mantissa bits) */);
+    ast_declare_primitive(FLOAT,  "float",  "float",    4, 16777216UL /* 2 ^ 24 (mantissa bits) */, true);
+    ast_declare_primitive(DOUBLE, "double", "double",   8, 9007199254740992UL /* 2 ^ 53 (mantissa bits) */, true);
 }
 
 /**

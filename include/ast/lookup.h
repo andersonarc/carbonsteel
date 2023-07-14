@@ -15,6 +15,7 @@
     /* includes */
 #include "language/context.h" /* parser context */
 #include "language/parser.h"  /* parser */
+#include "language/native/parser.h" /* native parser */
 
     /* functions */
 /**
@@ -29,6 +30,7 @@
  * @return Type of the token, or IDENTIFIER
  */
 myytoken_kind_t ast_lex_token(se_context* context, MYYSTYPE* yylval, char* token);
+cyytoken_kind_t ast_lex_token_native(se_context* context, CYYSTYPE* yylval, char* token);
 
 /**
  * Iterates the context stack to

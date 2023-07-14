@@ -48,6 +48,12 @@ struct ast_type {
         dc_enum* u_enum;
         dc_alias* u_alias;
         dc_function* u_function;
+
+        /**
+         * Todo: Support for function types, Support for Carbonsteel Unions, Support for C-native Unions,
+         * Generic Types and Methods. Fix type checking system.
+         */
+
         void* u__any;
     };
 };

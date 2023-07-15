@@ -168,7 +168,7 @@ char* ast_type_to_string(ast_type* value) {
                     }
                     internal_buffer_size += member_name_sizes[i];
 
-                    member_names[i] = allocate_array(char*, member_name_sizes[i]);
+                    member_names[i] = allocate_array(char*, member_name_sizes[i] + 1);
 
                     strncpy(member_names[i], internal_type, member_name_sizes[i]);
                     member_name_sizes[i] = strlen(internal_type);
@@ -186,6 +186,8 @@ char* ast_type_to_string(ast_type* value) {
                         member_names[i][member_name_sizes[i]] = ' ';
                         member_name_sizes[i] += 1;
                     }
+
+                    member_names[i][member_name_sizes[i]] = 0;
                 }
 
                 char* postfix = " };";

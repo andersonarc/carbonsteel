@@ -38,7 +38,7 @@ void ast_init(ast_root* ast) {
      * @todo
      * Arraylist and HashTable addAll functions
      * Resizable HashTable
-     * Use ast_declaration instead of void*
+     * Use declaration instead of void*
      */
     iterate_array(i, primitive_list.size) {
         ast_declare(ast, DC_PRIMITIVE, TOKEN_PRIMITIVE_NAME, CTOKEN_PRIMITIVE_NAME, 
@@ -276,6 +276,10 @@ bool ast_declaration_merge(ast_root* ast, declaration* dc) {
             dc_enum* ethis = dc->u_enum;
 
             list_free(dc_enum_member)(&eparent->member_list);
+
+            for (int i = 0; i < ethis->member_list.size; i++) {
+                ethis->member_list.data[i].parent = eparent;
+            }
 
             memcpy(eparent, ethis, sizeof(dc_enum));
             dc_parent->is_full = eparent->is_full;

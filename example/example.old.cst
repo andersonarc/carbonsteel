@@ -2,8 +2,6 @@ type alpha_t {
     int* a; 
 };
 
-import string;
-
 alias gamma_t = alpha_t;
 
 type beta_t {

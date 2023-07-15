@@ -131,6 +131,7 @@ typedef enum se_context_pass {
  */
 typedef struct se_context_import_file {
     char* filename;
+    bool is_native;
     se_context_pass last; /* last pass done on the file */
 } se_context_import_file;
 

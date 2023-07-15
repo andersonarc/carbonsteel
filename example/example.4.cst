@@ -1,4 +1,4 @@
-import stdio;
+import native stdio;
 
 alias size_t = int;
 
@@ -13,8 +13,6 @@ type buffer_t {
     size_t size;
     byte[] data;
 };
-
-extern int printf(byte[] string, ...);
 
 void bwrite(buffer_t* buffer) {
     buffer->state = buffer_state_t.WRITE;

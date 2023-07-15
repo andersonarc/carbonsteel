@@ -56,13 +56,6 @@ myytoken_kind_t ast_lex_token(se_context* context, MYYSTYPE* yylval, char* token
         declaration* dc = (declaration*) result->data;
         yylval->TOKEN_ANY_NAME = dc->u__any;
 
-        /*
-            I don't remember why this is here, but let it stay.
-        if (!dc->is_full) {
-            yylval->TOKEN_IDENTIFIER = copy_string(token);
-            return TOKEN_IDENTIFIER;
-        }*/
-
         /**
          * Unsigned integer workaround
          */

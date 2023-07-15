@@ -65,13 +65,6 @@ WS     [ \t\v\f]
     * @return The character constant
     */
     char parse_character_constant(char* value);
-
-    /**
-     * Handles body skips for different file passes
-     */
-    #define start_skip_action if (context->expect_skip_from == true) {
-    #define end_skip_action context->expect_skip_from = false; }
-    #define consider_skip() start_skip_action BEGIN(SKIP); end_skip_action
     
     #define YYSTYPE CYYSTYPE
     #define YYLTYPE CYYLTYPE
@@ -83,10 +76,7 @@ WS     [ \t\v\f]
 %option warn nodefault
 %option outfile="native_lexer.c" header-file="native_lexer.h"
 %s SKIP
-%s SKIP_BODY
 %s SKIP_PARAMETERS
-%s SKIP_PARAMETERS_FULL
-%s SKIP_STATEMENT
 
 %%
 
@@ -96,15 +86,8 @@ WS     [ \t\v\f]
 "#".*                   { /* consume a single-line comment */    }
 
 
-    /* skip start */
-<SKIP>"{"               {
-                            logd("skip: body");
-                            ++context->skip_pair_count;
-                            context->skip_until = '}';
-                            BEGIN(0);
-                            BEGIN(SKIP_BODY);
-                        }
 
+    /* skip start */
 <SKIP>"("               {
                             logd("skip: parameters");
                             ++context->skip_pair_count;
@@ -113,38 +96,10 @@ WS     [ \t\v\f]
                             BEGIN(SKIP_PARAMETERS);
                         }
 
-<SKIP>"="               {
-                            logd("skip: statement");
-                            context->skip_until = ';';
-                            BEGIN(0);
-                            BEGIN(SKIP_STATEMENT);
-                        }
-
     /* skip handler */
-<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT,SKIP_PARAMETERS_FULL>"\n"                            { yylloc_param->first_line++; yylloc_param->last_line++; }
-<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT,SKIP_PARAMETERS_FULL>{CPREF}?"'"([^'\\\n]|{CHR})+"'" { logd("skip: consuming a string"); }
-<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT,SKIP_PARAMETERS_FULL>{SPREF}?\"([^"\\\n]|{CHR})*\"   { logd("skip: consuming a character"); }
-
-    /* skip body */
-<SKIP_BODY>"{"          {
-                           //  ! todo macros for these ones. 
-                            logd("body skip: counting {");
-                            ++context->skip_pair_count;
-                        }
-
-<SKIP_BODY>"}"          {
-                            logd("body skip: counting }");
-                            --context->skip_pair_count;
-                            if (context->skip_pair_count == 0) {
-                                BEGIN(0);
-                                context->skip_until = 0;
-                                return CTOKEN_SKIPPED_BODY;
-                            }
-                        }
-
-<SKIP_BODY>[^{}\n]+ {
-                        logd("discard %s", yytext);
-                    }
+<SKIP_PARAMETERS>"\n"                            { yylloc_param->first_line++; yylloc_param->last_line++; }
+<SKIP_PARAMETERS>{CPREF}?"'"([^'\\\n]|{CHR})+"'" { logd("skip: consuming a string"); }
+<SKIP_PARAMETERS>{SPREF}?\"([^"\\\n]|{CHR})*\"   { logd("skip: consuming a character"); }
 
     /* skip parameters */
 <SKIP_PARAMETERS>"("    {
@@ -158,59 +113,13 @@ WS     [ \t\v\f]
                             if (context->skip_pair_count == 0) {
                                 BEGIN(0);
                                 context->skip_until = 0;
-                                /* todo make this optional */
-                                logd("parameter skip: forwarding to body skip");
-                                // todo DO NOT do it in case there is no body!
-                                context->expect_skip_from = true;
-                                consider_skip();
-                                return CTOKEN_SKIPPED_PARAMETERS;
                             }
                         }
 
-
-    /* skip parameters full */
-<SKIP_PARAMETERS_FULL>"("    {
-                                logd("parameter skip: counting (");
-                                ++context->skip_pair_count;
-                            }
-
-<SKIP_PARAMETERS_FULL>")"    {
-                                logd("parameter skip: counting )");
-                                --context->skip_pair_count;
-                                if (context->skip_pair_count == 0) {
-                                    BEGIN(0);
-                                    context->skip_until = 0;
-                                }
-                            }
-
-<SKIP_PARAMETERS_FULL>[^()\n]+   {
-                                    logd("discard %s", yytext);
-                                }
-
-    /* skip statement */
-<SKIP_STATEMENT>"{"     {
-                            logd("statement skip: counting {");
-                            ++context->skip_pair_count;
-                        }
-
-<SKIP_STATEMENT>"}"     {
-                            logd("statement skip: counting }");
-                            --context->skip_pair_count;
-                        }
-
-<SKIP_STATEMENT>";"     {
-                            if (context->skip_pair_count == 0) {
-                                logd("statement skip: met terminal ;")
-                                BEGIN(0);
-                                return CTOKEN_SKIPPED_STATEMENT;
-                            } else {
-                                logd("statement skip: met non-terminal ;")
-                            }                            
-                        }
-
-<SKIP_STATEMENT>[^{};"'\n]+ {
+<SKIP_PARAMETERS>[^()\n]+   {
                                 logd("discard %s", yytext);
                             }
+
 
 
     /* keywords */
@@ -222,7 +131,7 @@ WS     [ \t\v\f]
 "default"				{ return CTOKEN_DEFAULT; }
 "do"					{ return CTOKEN_DO; }
 "else"					{ return CTOKEN_ELSE; }
-"enum"					{ consider_skip(); return CTOKEN_ENUM; }
+"enum"					{ return CTOKEN_ENUM; }
 "extern"				{ return CTOKEN_EXTERN; }
 "for"					{ return CTOKEN_FOR; }
 "goto"					{ return CTOKEN_GOTO; }
@@ -234,7 +143,7 @@ WS     [ \t\v\f]
 "signed"				{ return CTOKEN_SIGNED; }
 "sizeof"				{ return CTOKEN_SIZEOF; }
 "static"				{ return CTOKEN_STATIC; }
-"struct"				{ consider_skip(); return CTOKEN_STRUCT; }
+"struct"				{ return CTOKEN_STRUCT; }
 "switch"				{ return CTOKEN_SWITCH; }
 "typedef"				{ return CTOKEN_TYPEDEF; }
 "union"					{ return CTOKEN_UNION; }
@@ -256,12 +165,12 @@ WS     [ \t\v\f]
 "__inline"                              {}
 "__restrict"                            {}
 "__extension__"                         {}
-"__attribute__"                         { BEGIN(SKIP_PARAMETERS_FULL); }
-"__asm__"                               { BEGIN(SKIP_PARAMETERS_FULL); }
+"__attribute__"                         { BEGIN(SKIP_PARAMETERS); }
+"__asm__"                               { BEGIN(SKIP_PARAMETERS); }
 
 
     /* identifier */
-{AZ}{AN}*		            { consider_skip(); return ast_lex_token_native(context, yylval_param, yytext); }
+{AZ}{AN}*		            { return ast_lex_token_native(context, yylval_param, yytext); }
 
 
     /* integer constants */
@@ -362,36 +271,10 @@ WS     [ \t\v\f]
     /* other tokens */
 "..."               { return CTOKEN_C_VARARG;            }
 ";"					{ return ';'; }
-"{"                 {
-                        start_skip_action
-                            logd("skip: body");
-                            ++context->skip_pair_count;
-                            context->skip_until = '}';
-                            BEGIN(0);
-                            BEGIN(SKIP_BODY);
-                        end_skip_action
-                        else return '{';
-                    }
+"{"                 { return '{'; }
 "}"			        { return '}'; }
-"("                 {
-                        start_skip_action
-                            logd("skip: parameters");
-                            ++context->skip_pair_count;
-                            context->skip_until = ')';
-                            BEGIN(0);
-                            BEGIN(SKIP_PARAMETERS);
-                        end_skip_action
-                        else return '(';
-                    }
-"="                 {
-                        start_skip_action
-                            logd("skip: statement");
-                            context->skip_until = ';';
-                            BEGIN(0);
-                            BEGIN(SKIP_STATEMENT);
-                        end_skip_action
-                        else return '=';
-                    }
+"("                 { return '('; }
+"="                 { return '='; }
 ","					{ return ','; }
 ":"					{ return ':'; }
 ")"					{ return ')'; }

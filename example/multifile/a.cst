@@ -15,8 +15,6 @@ type example {
     country place_of_birth;
 };
 
-extern void scanf(byte[] format, byte[] a, byte[] b);
-
 void main() {
     puts("Enter Name, Surname");
     example* ex = new example(new byte[16](), new byte[16](), 11, country.EUROPE);

@@ -1,6 +1,6 @@
 alias row = bool[];
 
-type field {
+type field_t {
     row[] field;
     int columns;
     int rows;
@@ -12,7 +12,7 @@ type player {
 };
 
 type game {
-    field* value;
+    field_t* value;
     player[] players;
 };
 
@@ -22,7 +22,7 @@ void func(game g) {
 
 void main() {
     game root = game(
-        new field(
+        new field_t(
             row[5](
                 bool[5](false, false, false, false, false),
                 bool[5](false, false, true , false, false),

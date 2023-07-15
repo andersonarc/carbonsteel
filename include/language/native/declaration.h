@@ -28,7 +28,7 @@ static inline char* cst_native_enum_name(char* name) {
     char* concat = allocate_array(char, CST_NATIVE_ENUM_PREFIX_STRLEN + name_length + 1);
     strcpy(concat, CST_NATIVE_ENUM_PREFIX);
     strncpy(concat + CST_NATIVE_ENUM_PREFIX_STRLEN, name, name_length);
-    concat[CST_NATIVE_STRUCT_PREFIX_STRLEN + name_length] = 0;
+    concat[CST_NATIVE_ENUM_PREFIX_STRLEN + name_length] = 0;
     return concat;
 }
 

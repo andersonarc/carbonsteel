@@ -1,4 +1,4 @@
-import stdio;
+import native stdio;
 
 enum cz_cell {
     CROSS, ZERO

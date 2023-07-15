@@ -17,6 +17,8 @@
 #include <dirent.h>
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h" /* memory allocation */
+#include "language/native/parser.h"
+#include "language/native/lexer.h"
 #include "language/parser.h" /* parser */
 #include "language/lexer.h" /* lexer */
 
@@ -333,6 +335,8 @@ void context_parse_origin(se_context* context, char* filename_) {
     /* mark the file as imported to prevent self-imports */
     se_context_import_file* import_file = allocate(se_context_import_file);
     import_file->filename = filename;
+    import_file->is_native = false;
+    // import_file->last = -1;
     arl_add(se_context_import_file_ptr, context->file_list, import_file);
 
     /* do three passes on the file */
@@ -373,42 +377,59 @@ void context_import(se_context* context, dc_import* import) {
         filename_length = relative_length;
     } else {
         char* parent_name = arraylist_last(context->file_list)->filename;
-        size_t parent_length = strlen(parent_name);
+        ssize_t parent_length = strlen(parent_name);
 
         /* a workaround to find the parent directory of the origin file */
-        while (parent_length >= 0 && 
+        do {
+            parent_length--;
+        } while (parent_length >= 0 &&
             parent_name[parent_length] != '/' &&
             parent_name[parent_length] != '\\'
-        ) {
-            parent_length--;
+        );
+        
+        if (parent_length != -1) {
+            
+            parent_length++;
+        } else {/* special case: no delimiter found in parent path */
+            parent_name = "";
+            parent_length = 0;
         }
-        parent_length++;
 
         /* merge the file and directory paths */
         filename_length = parent_length + relative_length + 1;
         filename = allocate_array(char, filename_length);
         strncpy(filename, parent_name, parent_length);
         strncpy(filename + parent_length, relative_name, relative_length);
+        filename[filename_length - 1] = 0;
     }
 
     /* handle repeating (circular/self) imports */
+    se_context_import_file* current_file = NULL;
     for (int i = 0; i < context->file_list.size; i++) {
-        se_context_import_file* current_file = context->file_list.data[i];
+        current_file = context->file_list.data[i];
         if (strncmp(filename, current_file->filename, filename_length) == 0) {
-            if (current_file->last == context->pass) {
+            if (current_file->is_native != import->is_native) {
+                logw("name conflict for native and non-native import! allowing, but that could be a bug")
+            } else if (current_file->last == context->pass) {
                 logd("rejected repeat import of %s", filename);
-                free(filename);
+                if (!import->is_native) {
+                    free(filename);
+                }
                 return;
             }
+        } else {
+            current_file = NULL;
         }
     }
-    se_context_import_file* import_file = allocate(se_context_import_file);
-    import_file->filename = filename;
-    import_file->last = context->pass;
-    arl_add(se_context_import_file_ptr, context->file_list, import_file);
+    if (current_file == NULL) {
+        current_file = allocate(se_context_import_file);
+        current_file->filename = filename;
+        current_file->is_native = import->is_native;
+        arl_add(se_context_import_file_ptr, context->file_list, current_file);
+    }
+    current_file->last = context->pass;
     
     /* parse the file */
-    
     if (import->is_native) {
         if (context->pass == SCTX_PASS_1) {
             ast_add_declaration(&context->ast, DC_IMPORT, import, false, NULL);

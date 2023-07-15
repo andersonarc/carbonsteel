@@ -115,7 +115,7 @@
  * @param[in] parent_ex The parent expression value
  */
 #define inherit_self(ex_type, action_name, ex, parent_ex)                                   \
-    ex.properties = parent_ex.properties; /* todo hotfix, could be invalid */               \
+    ex.properties = parent_ex.properties;                                                   \
     ex_##ex_type##_inherit_data_on_##action_name(&ex.data, &parent_ex.data);                \
     ex_##ex_type##_inherit_properties_on_##action_name(ex.properties, parent_ex.properties);
 

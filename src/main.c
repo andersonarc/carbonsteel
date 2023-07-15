@@ -62,9 +62,10 @@ int main(int argc, char* argv[]) {
     if (!output_specified) {
         iterate_array(i, input_files.size) {
             size_t length = strlen(input_files.data[i]);
-            char* output_filename = allocate_array(char, length + sizeof(".c") + 1);
+            char* output_filename = allocate_array(char, length + sizeof(".c"));
             strncpy(output_filename, input_files.data[i], length);
             strcpy(output_filename + length, ".c");
+            output_filename[length + sizeof(".c") - 1] = 0;
             arl_add(char_ptr, output_files, output_filename);
         }
     } else {

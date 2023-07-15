@@ -29,8 +29,6 @@ bool ast_type_last_level_is(ast_type* value, ast_type_level_kind level) {
     return arraylist_last(value->level_list).kind == level;
 }
 
-//todo @return With Capital Letter
-
     /* functions */
 /**
  * Type check functions
@@ -223,42 +221,26 @@ bool ast_type_is_pp_boolean(ast_type* value) {
  */
 bool ast_type_is_equal(ast_type* a, ast_type* b) {
     if (a->kind != b->kind) return false;
-    
-    /*switch (a->kind) {
-        case AST_TYPE_STRUCTURE:
-            if (memcmp(a->u_structure, b->u_structure, sizeof(dc_structure)) != 0) {
-                return false;
-            }
-            break;
-
-        case AST_TYPE_ENUM:
-            if (memcmp(a->u_enum, b->u_enum, sizeof(dc_enum)) != 0) {
-                return false;
-            }
-            break;
-
-        case AST_TYPE_FUNCTION:
-            if (memcmp(a->u_function, b->u_function, sizeof(dc_function)) != 0) {
-                return false;
-            }
-            break;
-        
-        case AST_TYPE_PRIMITIVE:
-            if (memcmp(a->u_primitive, b->u_primitive, sizeof(ast_type_primitive)) != 0) {
-                return false;
-            }
-            break;
-
-        otherwise_error
-    }*/
-    /* TODO - TEMPORARY WORKAROUND. Why a.u__any != b.u__any??*/
-    // todo resolve issue with merge types not being equal
-    if (a->u__any != b->u__any) return false;
     if (a->level_list.size != b->level_list.size) return false;
-
     iterate_array(i, a->level_list.size) {
         if (a->level_list.data[i].kind != b->level_list.data[i].kind) return false;
     }
+
+    /* special case - char and byte are interchangeable */
+    if (a->kind == AST_TYPE_PRIMITIVE && b->kind == AST_TYPE_PRIMITIVE) {
+        index_t index_a = ast_type_primitive_get_index(a->u_primitive);
+        index_t index_b = ast_type_primitive_get_index(b->u_primitive);
+        
+        //todo better workaround: declare char as alias to byte, and uchar as alias to ubyte
+        if ((index_a == PRIMITIVE_INDEX_BYTE && index_b == PRIMITIVE_INDEX_CHAR)
+        || (index_a == PRIMITIVE_INDEX_CHAR && index_b == PRIMITIVE_INDEX_BYTE)
+        || (index_a == PRIMITIVE_INDEX_UBYTE && index_b == PRIMITIVE_INDEX_UCHAR)
+        || (index_a == PRIMITIVE_INDEX_UCHAR && index_b == PRIMITIVE_INDEX_UBYTE)) {
+            return true;
+        }
+    }
+
+    if (a->u__any != b->u__any) return false;
 
     return true;
 }

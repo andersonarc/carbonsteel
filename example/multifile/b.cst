@@ -1,7 +1,5 @@
 import a;
 
-extern int puts(byte[] string);
-
 void print(example* ex) {
     puts(ex->first_name);
     puts(ex->second_name);

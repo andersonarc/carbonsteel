@@ -146,6 +146,8 @@ ast_type cst_native_declspecs_translate(se_context* context, c_declaration_speci
                     case AST_TYPE_FUNCTION:
                     case AST_TYPE_PRIMITIVE:
                         break;
+                    
+                    otherwise_error
                 }
                 if (dc.u__any != NULL) {
                     arraylist_add(declaration)(declarations, dc);

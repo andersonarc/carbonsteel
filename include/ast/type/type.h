@@ -35,7 +35,7 @@ arraylist_declare_functions(ast_type_level);
 
 enum ast_type_kind {
     AST_TYPE_PRIMITIVE, AST_TYPE_STRUCTURE,
-    AST_TYPE_ENUM, AST_TYPE_FUNCTION
+    AST_TYPE_ENUM, AST_TYPE_FUNCTION, AST_TYPE_GENERIC
 };
 
 struct ast_type {
@@ -48,6 +48,7 @@ struct ast_type {
         dc_enum* u_enum;
         dc_alias* u_alias;
         dc_function* u_function;
+        dc_generic* u_generic;
 
         /**
          * Todo: Support for function types, Support for Carbonsteel Unions, Support for C-native Unions,

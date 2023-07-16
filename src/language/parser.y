@@ -402,16 +402,17 @@ function
 function_prefix
 	: type_and_name function_parameters
 		{	
-			context_enter(context, SCTX_FUNCTION); 
+			context_enter(context, SCTX_SCOPE); 
 
 			iterate_array(i, $function_parameters.value.size) {
-				ast_local_declaration dc = {
-					.kind = TOKEN_FUNCTION_PARAMETER_NAME,
+				local_declaration dc = {
+					.kind = DC_L_FUNCTION_PARAMETER,
+					.token = TOKEN_FUNCTION_PARAMETER_NAME,
 					.name = $function_parameters.value.data[i].name,
 					.u_function_parameter = &$function_parameters.value.data[i]
 				};
 
-				arl_add(ast_local_declaration, context_current(context)->u_locals, dc);
+				arl_add(local_declaration, context_current(context)->u_locals, dc);
 			}
 
 			context_skip(context, 2);
@@ -430,15 +431,15 @@ function_definition
 		{		
 			$$ = $function_prefix;
 			$$->body = $compound_statement;
-
-			context_exit(context);
+			
+			context_exit(context); /* SCTX_SCOPE */
 		}
 	| function_prefix SKIPPED_BODY
 		{
 			$$ = $function_prefix;
 			$$->is_full = false;
 
-			context_exit(context);
+			context_exit(context); /* SCTX_SCOPE */
 		}
 	| type_and_name SKIPPED_PARAMETERS SKIPPED_BODY
 		{
@@ -582,7 +583,7 @@ enum_declaration
 			$$->name = $enum_name;
 			$$->member_list = $enum_body;
 
-			context_exit(context);
+			context_exit(context); /* SCTX_ENUM */
 		}
 	| ENUM enum_name 
 		{ context_enter(context, SCTX_ENUM); }
@@ -593,7 +594,7 @@ enum_declaration
 			$$->name = $enum_name;
 			li_init_empty(dc_enum_member, $$->member_list);
 
-			context_exit(context);
+			context_exit(context); /* SCTX_ENUM */
 		}
 	;
 
@@ -692,15 +693,16 @@ variable_declaration_statement
 				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
 							ast_type_to_string(&$expression_block.value->properties->type), ast_type_to_string(&$$->type));
 
-			se_context_level* function = context_find(context, SCTX_FUNCTION);
+			se_context_level* function = context_find(context, SCTX_SCOPE);
 			if (function != NULL) {
-				ast_local_declaration dc = {
-					.kind = TOKEN_VARIABLE_NAME,
+				local_declaration dc = {
+					.kind = DC_L_VARIABLE,
+					.token = TOKEN_VARIABLE_NAME,
 					.name = $$->name,
 					.u_variable = $$
 				};
 
-				arl_add(ast_local_declaration, function->u_locals, dc);
+				arl_add(local_declaration, function->u_locals, dc);
 			}
 		}
 	;
@@ -750,7 +752,7 @@ import_declaration
 		IMPORT import_declaration_[value]
 	  { 
 		$$ = $value;
-		context_exit(context);
+		context_exit(context); /* SCTX_IMPORT */
       }
 	;
 
@@ -1027,7 +1029,7 @@ expression_block
 			}
 			$$.value = $expression;
 			
-		  	context_exit(context);
+		  	context_exit(context); /* SCTX_EXPRESSION */
 		
 			context_enter(context, SCTX_EXPRESSION); 
 		}
@@ -1105,16 +1107,23 @@ statement
 	| jump_statement		{ u_init_ptr($$, ST_JUMP)      ->u_st_jump       = $jump_statement;       }
 	;
 
-compound_statement
-	: '{' 
-		{ context_enter(context, SCTX_EXPRESSION); }
-	   compound_statement_item_list '}'
-		{ 
-			context_exit(context);
-			li_init_from(st_compound_item, $$, $compound_statement_item_list);
-		}
+compound_statement_start
+	: '{'
+		{ context_enter(context, SCTX_SCOPE); 		}
+		{ context_enter(context, SCTX_EXPRESSION);	}
+	;
 
-	| '{' '}'
+compound_statement_end
+	: '}'
+		{ context_exit(context); /* SCTX_EXPRESSION */ 	}
+		{ context_exit(context); /* SCTX_SCOPE */		}
+	;
+
+compound_statement
+	: compound_statement_start compound_statement_item_list compound_statement_end
+		{ li_init_from(st_compound_item, $$, $compound_statement_item_list); }
+
+	| compound_statement_start compound_statement_end
 		{ li_init_empty(st_compound_item, $$); }
 	;
 

@@ -11,13 +11,14 @@
 #include "syntax/predeclaration.h"  /* predeclarations */
 #include "syntax/declaration/declaration.h"  /* declarations */
 #include "syntax/statement/statement.h"  /* statement */
+#include "ast/type/primitive.h" /* primitives */
 #include "language/native/types.h"
 
     /* generic implementations */
 list_define(st_compound_item);
 arraylist_define(dc_st_variable_ptr);
 arraylist_define(statement);
-arraylist_define(ast_local_declaration);
+arraylist_define(local_declaration);
 list_define(ast_type_primitive);
 arraylist_define(ast_type_level);
 arraylist_define(ast_type);

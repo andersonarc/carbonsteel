@@ -16,7 +16,6 @@
 #define CARBONSTEEL_PARSER_CONTEXT_H
 
     /* includes */
-#include "ast/declaration.h" /* ast declaration type */
 #include "ast/root.h" /* ast root type */
 
 #include "ctool/type/bitset.h" /* bitset type */
@@ -95,7 +94,7 @@ typedef uint8_t_bitset_t flag_context;
  */
 typedef enum se_context_level_kind {
     SCTX_GLOBAL,
-    SCTX_IMPORT, SCTX_FUNCTION, SCTX_EXPRESSION,
+    SCTX_IMPORT, SCTX_SCOPE, SCTX_EXPRESSION,
     SCTX_ENUM, SCTX_FLAG
 } se_context_level_kind;
 
@@ -105,7 +104,7 @@ typedef enum se_context_level_kind {
 typedef struct se_context_level {
     se_context_level_kind kind;
     union {
-        arraylist(ast_local_declaration) u_locals; /* in SCTX_FUNCTION   */
+        arraylist(local_declaration) u_locals;     /* in SCTX_SCOPE      */
         ex_block u_ex_block;                       /* in SCTX_EXPRESSION */
         enum_context u_enum_context;               /* in SCTX_ENUM       */
         flag_context u_flag_context;               /* in SCTX_FLAG       */

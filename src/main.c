@@ -8,6 +8,7 @@
  */
     /* includes */
 #include "ast/root.h" /* ast */
+#include "ast/type/primitive.h" /* primitives */
 #include "codegen/codegen.h" /* code generation */
 #include "misc/memory.h" /* memory allocation */
 #include "language/parser.h" /* parser */

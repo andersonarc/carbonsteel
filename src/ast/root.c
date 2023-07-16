@@ -10,6 +10,7 @@
     /* includes */
 #include "ast/root.h" /* this */
 
+#include "ast/type/primitive.h" /* primitives */
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h"     /* memory allocation */
 #include "language/parser.h" /* parser */

@@ -146,6 +146,10 @@ char* ast_type_to_string(ast_type* value) {
             name = value->u_primitive->name;
             break;
 
+        case AST_TYPE_GENERIC:
+            name = value->u_generic->name;
+            break;
+
         case AST_TYPE_STRUCTURE:
             if (value->u_structure->name != NULL) {
                 name = value->u_structure->name;

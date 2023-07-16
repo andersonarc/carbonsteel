@@ -123,6 +123,15 @@ struct dc_import {
 
 
 /**
+ * Declaration of generic type
+ */
+struct dc_generic {
+    char* name;
+    ast_type _impl; /* used in codegen, NULL by default */
+};
+
+
+/**
  * Base type that contains a declaration 
  * of specified kind
  */
@@ -154,5 +163,30 @@ struct declaration {
 };
 arraylist_declare_functions(declaration);
 
+
+/**
+ * Local (scope-wide) declaration structure
+ * stored in the parser context
+ */
+enum local_declaration_kind {
+    DC_L_FUNCTION_PARAMETER, DC_L_VARIABLE,
+    DC_L_GENERIC_NAME
+};
+
+struct local_declaration {
+    char* name;
+    int token;
+    local_declaration_kind kind;
+    union {
+        /* warning: do not add any non-pointer types */
+        void* u__any;
+        dc_function_parameter* u_function_parameter;
+        dc_st_variable* u_variable;
+        dc_generic* u_generic;
+    };
+};
+arraylist_declare_functions(local_declaration);
+/* todo - needs to be reworked, as currently there are declaration conflicts between scopes
+    e.g. for if expressions inside functions */
 
 #endif /* CARBONSTEEL_SYNTAX_DECLARATION_H */

@@ -10,6 +10,7 @@
  */
     /* includes */
 #include "ast/lookup.h" /* this */
+#include "ast/type/primitive.h" /* primitives */
 
 #include <string.h> /* string functions */
 
@@ -140,13 +141,13 @@ myytoken_kind_t context_lex_token(se_context* context, MYYSTYPE* yylval, char* t
     for (int i = context->stack.size - 1; i >= 0; i--) {
         se_context_level* current = &context->stack.data[i];
         switch (current->kind) {
-            case SCTX_FUNCTION:
+            case SCTX_SCOPE:
                 /* check local declarations */
                 iterate_array(i, current->u_locals.size) {
-                    ast_local_declaration dc = current->u_locals.data[i];
+                    local_declaration dc = current->u_locals.data[i];
                     if (strcmp(token, dc.name) == 0) {
                         yylval->TOKEN_ANY_NAME = dc.u__any;
-                        return dc.kind;
+                        return dc.token;
                     }
                 }
                 break;

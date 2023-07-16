@@ -27,7 +27,7 @@
  * Parser context level kind string values
  */
 const char* se_context_level_kind_strings[] = {
-    "GLOBAL", "IMPORT", "FUNCTION", "EXPRESSION", "ENUM", "FLAG"
+    "GLOBAL", "IMPORT", "SCOPE", "EXPRESSION", "ENUM", "FLAG"
 };
 
     /* functions */
@@ -67,6 +67,7 @@ se_context* context_new() {
  * @param kind    Kind of the context level
  */
 void context_enter(se_context* context, se_context_level_kind kind) {
+    logd("entering %s", se_context_level_kind_strings[kind]);
     se_context_level level = { .kind = kind };
 
     /* initialize the level value */
@@ -75,8 +76,8 @@ void context_enter(se_context* context, se_context_level_kind kind) {
             arraylist_init_empty(ex_constructor_ptr)(&level.u_ex_block.constructors);
             break;
 
-        case SCTX_FUNCTION:
-            arl_init(ast_local_declaration, level.u_locals);
+        case SCTX_SCOPE:
+            arl_init(local_declaration, level.u_locals);
             break;
 
         case SCTX_ENUM:
@@ -149,6 +150,7 @@ se_context_level* context_get(se_context* context, se_context_level_kind kind) {
  * @param context Pointer to the parser context
  */
 void context_exit(se_context* context) {
+    logd("leaving %s", se_context_level_kind_strings[arraylist_last(context->stack).kind]);
     if (arraylist_last(context->stack).kind == SCTX_GLOBAL) {
         error_internal("attempted to exit from the global context");
     }

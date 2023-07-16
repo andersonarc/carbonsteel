@@ -11,6 +11,7 @@
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "syntax/statement/statement.h" /* statements */
 #include "ast/type/resolve.h" /* type initialization */
+#include "ast/type/primitive.h" /* primitives */
 #include "ast/type/check.h" /* type comparison */
 
     /* internal functions */

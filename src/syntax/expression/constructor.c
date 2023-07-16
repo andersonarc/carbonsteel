@@ -29,11 +29,15 @@ void ex_constructor_type_check_plain(ex_constructor* this) {
     switch (this->type->kind) {
         case AST_TYPE_ENUM:
             error_syntax("cannot construct an enum \"%s\"", ast_type_to_string(this->type));
-        break;
+            break;
+
+        case AST_TYPE_GENERIC:
+            error_syntax("cannot construct a generic type \"%s\"", ast_type_to_string(this->type));
+            break;
 
         case AST_TYPE_FUNCTION:
             error_syntax("cannot construct a function \"%s\"", ast_type_to_string(this->type));
-        break;
+            break;
 
         case AST_TYPE_PRIMITIVE:
             expect(this->argument_list.size == 1)
@@ -47,7 +51,7 @@ void ex_constructor_type_check_plain(ex_constructor* this) {
                             ast_type_to_string(this->type), 
                             ast_type_to_string(this->type), 
                             ast_type_to_string(type));
-        break;
+            break;
 
         case AST_TYPE_STRUCTURE:
             dc_structure* structure = this->type->u_structure;
@@ -67,7 +71,9 @@ void ex_constructor_type_check_plain(ex_constructor* this) {
                                 ast_type_to_string(&member.type), 
                                 ast_type_to_string(type));
             }
-        break;
+            break;
+
+        otherwise_error;
     }
 }
 

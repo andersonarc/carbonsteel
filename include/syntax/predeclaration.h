@@ -88,6 +88,9 @@ dl_struct(ast_type_primitive);
 
         /** DECLARATIONS **/
 
+    /* generic */
+d_struct(dc_generic);
+
     /* alias */
 d_struct(dc_alias);
 
@@ -114,6 +117,10 @@ arraylist_declare_functions(dc_import_node);
 da_struct(declaration);
 da_pointer(declaration);
     d_enum(declaration_kind);
+
+    /* local declaration */
+da_struct(local_declaration);
+    d_enum(local_declaration_kind);
 
 
         /** EXPRESSIONS **/

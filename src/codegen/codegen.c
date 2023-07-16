@@ -12,6 +12,7 @@
 #include <string.h> /* string functions */
 
 #include "ast/root.h" /* abstract syntax tree */
+#include "ast/type/primitive.h" /* primitives */
 #include "syntax/statement/statement.h" /* statements */
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h" /* memory allocation */

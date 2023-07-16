@@ -14,6 +14,7 @@
 #include "language/native/types.h"
 #include "syntax/predeclaration.h"
 #include "syntax/declaration/declaration.h"
+#include "ast/type/primitive.h" /* primitives */
 
     /* functions */
 /**

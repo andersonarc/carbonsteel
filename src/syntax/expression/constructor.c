@@ -28,38 +28,45 @@
 void ex_constructor_type_check_plain(ex_constructor* this) {
     switch (this->type->kind) {
         case AST_TYPE_ENUM:
-            error_syntax("cannot construct an enum \"%s\"", ast_type_to_string(this->type));
+            error_syntax("cannot construct an enum \"%s\"", ast_type_display_name(this->type));
             break;
 
         case AST_TYPE_GENERIC:
-            error_syntax("cannot construct a generic type \"%s\"", ast_type_to_string(this->type));
+            error_syntax("cannot construct a generic type \"%s\"", ast_type_display_name(this->type));
             break;
 
         case AST_TYPE_FUNCTION:
-            error_syntax("cannot construct a function \"%s\"", ast_type_to_string(this->type));
+            error_syntax("cannot construct a function \"%s\"", ast_type_display_name(this->type));
             break;
 
         case AST_TYPE_PRIMITIVE:
             expect(this->argument_list.size == 1)
                 otherwise("invalid argument count for \"%s\" primitive type constructor: expected 1, got %zu",
-                            ast_type_to_string(this->type), 
+                            ast_type_display_name(this->type), 
                             this->argument_list.size);
 
             ast_type* type = &this->argument_list.data[0]->properties->type;
             expect(ast_type_can_merge(this->type, type))
                 otherwise("invalid argument for \"%s\" primitive type constructor: expected \"%s\", got \"%s\"",
-                            ast_type_to_string(this->type), 
-                            ast_type_to_string(this->type), 
-                            ast_type_to_string(type));
+                            ast_type_display_name(this->type), 
+                            ast_type_display_name(this->type), 
+                            ast_type_display_name(type));
             break;
 
         case AST_TYPE_STRUCTURE:
             dc_structure* structure = this->type->u_structure;
             expect(structure->member_list.size == this->argument_list.size)
                 otherwise("invalid argument count for \"%s\" structure type constructor: expected %zu, got %zu",
-                            ast_type_to_string(this->type), 
+                            ast_type_display_name(this->type), 
                             structure->member_list.size, 
                             this->argument_list.size);
+
+            
+            if (structure->_generic_impls.size != 0) {
+                /* assign the implementation used */
+                list(ast_type) impl = structure->_generic_impls.data[this->type->_generic_impl_index];
+                dc_structure_generic_apply_impl(structure, impl);
+            }
 
             iterate_array(i, this->argument_list.size) {
                 dc_structure_member member = structure->member_list.data[i];
@@ -68,8 +75,8 @@ void ex_constructor_type_check_plain(ex_constructor* this) {
                 expect(ast_type_can_merge(type, &member.type))
                     otherwise("invalid constructor argument \"%s\": expected type \"%s\", got \"%s\"",
                                 member.name, 
-                                ast_type_to_string(&member.type), 
-                                ast_type_to_string(type));
+                                ast_type_display_name(&member.type), 
+                                ast_type_display_name(type));
             }
             break;
 
@@ -80,15 +87,15 @@ void ex_constructor_type_check_plain(ex_constructor* this) {
 void ex_constructor_type_check_pointer(ex_constructor* this) {
     expect(this->argument_list.size == 1)
         otherwise("invalid argument count for \"%s\" pointer type constructor: expected 1, got %zu",
-                        ast_type_to_string(this->type), 
+                        ast_type_display_name(this->type), 
                         this->argument_list.size);
 
     ast_type* type = &this->argument_list.data[0]->properties->type;
     expect(ast_type_can_merge(this->type, type))
         otherwise("invalid argument for \"%s\" pointer type constructor: expected \"%s\", got \"%s\"",
-                        ast_type_to_string(this->type), 
-                        ast_type_to_string(this->type), 
-                        ast_type_to_string(type));
+                        ast_type_display_name(this->type), 
+                        ast_type_display_name(this->type), 
+                        ast_type_display_name(type));
 }
 
 void ex_constructor_type_check(ex_constructor* this) {

@@ -41,6 +41,7 @@ enum ast_type_kind {
 struct ast_type {
     ast_type_kind kind;
     arraylist(ast_type_level) level_list;
+    index_t _generic_impl_index; /* the index of the generic implementation used */
     union {
         /* warning: do not add any non-pointer types */
         ast_type_primitive* u_primitive;
@@ -127,13 +128,34 @@ void ast_type_pointer_wrap(ast_type* value);
 expression_data* ast_type_constant_array_size(ast_type* value);
 
 /**
- * Converts a lexical type to a string
+ * Converts a lexical type to a string,
+ * showing its display name
  * 
  * @param[in] value Pointer to the type
  * 
  * @return String representation of the type
  */
-char* ast_type_to_string(ast_type* value);
+char* ast_type_display_name(ast_type* value);
+
+/**
+ * Mangles the name of a type in case it is anonymous
+ * or has generics, ignoring the type's level list
+ * 
+ * @param[in] value Pointer to the type
+ * 
+ * @return Identifier-valid plain mangled name of the type
+ */
+char* ast_type_mangled_name_plain(ast_type* value);
+
+/**
+ * Mangles the name of a type in case it is anonymous
+ * or has generics
+ * 
+ * @param[in] value Pointer to the type
+ * 
+ * @return Identifier-valid mangled name of the type
+ */
+char* ast_type_mangled_name(ast_type* value);
 
 
 #endif /* AST_TYPE_TYPE_H */

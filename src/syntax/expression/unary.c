@@ -37,7 +37,7 @@ iapi_append_operator(U, unary, dereference, DEREFERENCE) {
     iexpect_parent(pointer) {
         expect(ast_type_is_pointer(&parent->type))
             otherwise("cannot dereference a non-pointer of type %s", 
-                ast_type_to_string(&parent->type));
+                ast_type_display_name(&parent->type));
     }
     
     iset_type(assign pop) {
@@ -54,7 +54,7 @@ iapi_append_operator(U, unary, binary_not, BINARY_NOT) {
     iexpect_parameter(number) {
         expect(ast_type_is_pp_number(&parent->type))
             otherwise("cannot apply binary not to a non-number of type \"%s\"", 
-                ast_type_to_string(&parent->type));
+                ast_type_display_name(&parent->type));
     }
 
     iset_type(assign) {
@@ -67,7 +67,7 @@ iapi_append_operator(U, unary, logic_not, LOGIC_NOT) {
     iexpect_parameter(boolean) {
         expect(ast_type_is_pp_boolean(&parent->type))
             otherwise("cannot apply logic not to a non-boolean of type \"%s\"", 
-                ast_type_to_string(&parent->type));
+                ast_type_display_name(&parent->type));
     }
 
     iset_type(assign) {
@@ -83,7 +83,7 @@ iapi_init_with_kind(U, unary, increment, INCREMENT) {
     iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
             otherwise("cannot increment a non-number of type \"%s\"", 
-                ast_type_to_string(&parent->type));
+                ast_type_display_name(&parent->type));
     }
 
     iset_type(assign) {
@@ -102,7 +102,7 @@ iapi_init_with_kind(U, unary, decrement, DECREMENT) {
     iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
             otherwise("cannot decrement a non-number of type \"%s\"", 
-                ast_type_to_string(&parent->type));
+                ast_type_display_name(&parent->type));
     }
 
     iset_type(assign) {
@@ -131,7 +131,7 @@ iapi_init_with_kind(U, unary, minus, MINUS) {
     iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
                 otherwise("cannot negate a non-number of type \"%s\"", 
-                    ast_type_to_string(&parent->type));
+                    ast_type_display_name(&parent->type));
     }
 
     iset_type(assign) {

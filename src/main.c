@@ -11,6 +11,7 @@
 #include "ast/type/primitive.h" /* primitives */
 #include "codegen/codegen.h" /* code generation */
 #include "misc/memory.h" /* memory allocation */
+#include "misc/string.h"
 #include "language/parser.h" /* parser */
 #include "language/native/parser.h"
 #include "language/lexer.h" /* lexer */
@@ -62,12 +63,7 @@ int main(int argc, char* argv[]) {
     }
     if (!output_specified) {
         iterate_array(i, input_files.size) {
-            size_t length = strlen(input_files.data[i]);
-            char* output_filename = allocate_array(char, length + sizeof(".c"));
-            strncpy(output_filename, input_files.data[i], length);
-            strcpy(output_filename + length, ".c");
-            output_filename[length + sizeof(".c") - 1] = 0;
-            arl_add(char_ptr, output_files, output_filename);
+            arl_add(char_ptr, output_files, cst_strconcat(input_files.data[i], ".c"));
         }
     } else {
         if (input_files.size != output_files.size) {

@@ -37,6 +37,8 @@ struct ex_block {
     expression* value;
 };
 
+
+
 /**
  * Enum context structure
  * that tracks the element index and enum value
@@ -56,6 +58,8 @@ struct enum_context {
     size_t member_index;
     enum_context_kind kind;
 };
+
+
 
 /**
  * Context level which is a bitset structure
@@ -79,14 +83,6 @@ typedef uint8_t_bitset_t flag_context;
 #define flag_context_if_signed(this)    bitset_if_not_set(this, 0)
 #define flag_context_if_unsigned(this)  bitset_if_set(this, 0)
 
-/**
- * Set the context to skip mode
- * if it is currently on pass n
- */
-#define context_skip(context, n)                    \
-    if (context->pass == SCTX_PASS_##n) {           \
-        context->expect_skip_from = true;           \
-    }
 
 
 /**
@@ -112,6 +108,8 @@ typedef struct se_context_level {
 } se_context_level;
 arraylist_declare(se_context_level);
 
+
+
 /**
  * Import pass of the parser
  * 
@@ -125,6 +123,17 @@ typedef enum se_context_pass {
     SCTX_PASS_3
 } se_context_pass;
 
+
+
+/**
+ * This enum specifies the matching parameters for character skipping
+ */
+typedef enum se_context_skip_mode {
+    SCTX_SKIP_NONE = -2, SCTX_SKIP_ANY = -1 /* other: specific character */
+} se_context_skip_mode;
+
+
+
 /**
  * Imported file structure
  */
@@ -134,6 +143,8 @@ typedef struct se_context_import_file {
     se_context_pass last; /* last pass done on the file */
 } se_context_import_file;
 
+
+
 /**
  * Parser context structure
  */
@@ -141,13 +152,14 @@ typedef struct se_context {
     arraylist(se_context_level) stack;
     ast_root ast;
     se_context_pass pass;
+    char* filename; /* the filename of the parser's origin file */
     arraylist(se_context_import_file_ptr) file_list; /* the list of imported files */
 
     /* assistant fields for skipping tokens */
-    int skip_pair_count;
-    char skip_until;
-    bool expect_skip_from;
-    /* todo refactor it? doesn't look very well */
+    int skip_pair_count; /* bracket pair counter */
+    int expect_skip_from; /* SCTX_SKIP_NONE, SCTX_SKIP_ANY or the character to start skipping from */
+    int expect_skip_discard; /* SCTX_SKIP_NONE, SCTX_SKIP_ANY or the character which, if encountered, makes the context exit the skip mode */
+    char skip_until; /* unset by default */
 } se_context;
 
 
@@ -254,5 +266,39 @@ void context_parse_origin(se_context* context, char* filename);
  * @param import The import declaration
  */
 void context_import(se_context* context, dc_import* import);
+
+/**
+ * Set the context to skip mode if it is currently on the specified pass
+ * Any character, No discards
+ */
+void context_skip(se_context* context, se_context_pass pass);
+
+/**
+ * Set the context to skip mode if it is currently on the specified pass
+ * Specified character only, No discards
+ */
+void context_skip_specific(se_context* context, se_context_pass pass, char c);
+
+/**
+ * Set the context to skip mode if it is currently on the specified pass
+ * Specified character only, Specified discard character
+ */
+void context_skip_specific_unless(se_context* context, se_context_pass pass, char c, int d);
+
+/**
+ * Checks if the lexer should enter skip mode, leave it 
+ * or do nothing depending on the current character,
+ * and also sets it up for further actions
+ */
+typedef enum se_context_skip_action {
+    SCTX_SA_NONE, SCTX_SA_EXIT, SCTX_SA_START
+} se_context_skip_action;
+
+se_context_skip_action context_should_skip(se_context* context, char c);
+
+/**
+ * Cleans up the context after the lexer exits the skip mode
+ */
+void context_finish_skip(se_context* context);
 
 #endif /* CARBONSTEEL_PARSER_CONTEXT_H */

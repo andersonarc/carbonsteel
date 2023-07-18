@@ -34,7 +34,7 @@ properties_self_inheritance_with_ex_and_ex(condition, condition, condition, if_b
     iexpect_parameter(boolean) {
         expect(ast_type_is_pp_boolean(&condition->type))
             otherwise("conditional expression has non-boolean condition of type \"%s\"", 
-                        ast_type_to_string(&condition->type));
+                        ast_type_display_name(&condition->type));
     }
 
     //todo :: an error buffer for merge_extend function (accept and return plain values)?
@@ -45,8 +45,8 @@ properties_self_inheritance_with_ex_and_ex(condition, condition, condition, if_b
     iexpect_parent_and_parameter(mergeable) {
         expect((tmp = ast_type_merge_extend(&if_branch->type, &parent->type)) != NULL)
             otherwise("conditional expression values are not equal: first value has type \"%s\", but second has type \"%s\"",
-                        ast_type_to_string(&if_branch->type),
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&if_branch->type),
+                        ast_type_display_name(&parent->type));
     }
 
     iset_type(merge) {
@@ -90,8 +90,8 @@ properties_self_inheritance_with_ex_and(expression, assignment, assignee, op_ass
     iexpect_parent_and_parameter(assignable) {
         expect(ast_type_can_assign(&assignee->type, &parent->type))
             otherwise("illegal assignment to type \"%s\" from type \"%s\"",
-                            ast_type_to_string(&assignee->type), 
-                            ast_type_to_string(&parent->type));
+                            ast_type_display_name(&assignee->type), 
+                            ast_type_display_name(&parent->type));
     }
 
     iexpect_parameter(number if not plain assignment) {
@@ -99,7 +99,7 @@ properties_self_inheritance_with_ex_and(expression, assignment, assignee, op_ass
             expect(ast_type_is_pp_number(&assignee->type))
                 otherwise("assignment operator \"%s\" can only be applied to numbers, got type \"%s\"", 
                             op_assign_strings[operator], 
-                            ast_type_to_string(&assignee->type));
+                            ast_type_display_name(&assignee->type));
         }
     }
 

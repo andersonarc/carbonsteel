@@ -78,6 +78,7 @@ d_struct(ast_type_declaration);
 
     /* lexical type */
 da_struct(ast_type);
+arraylist_declare(list(ast_type));
     d_enum(ast_type_kind);
     da_struct(ast_type_level);
     d_enum(ast_type_level_kind);
@@ -90,6 +91,7 @@ dl_struct(ast_type_primitive);
 
     /* generic */
 d_struct(dc_generic);
+da_pointer(dc_generic);
 
     /* alias */
 d_struct(dc_alias);

@@ -67,12 +67,23 @@ WS     [ \t\v\f]
     char parse_character_constant(char* value);
 
     /**
-     * Handles body skips for different file passes
+     * Handles the skip action for current token
      */
-    #define start_skip_action if (context->expect_skip_from == true) {
-    #define end_skip_action context->expect_skip_from = false; }
-    #define consider_skip() start_skip_action BEGIN(SKIP); end_skip_action
-    
+    #define lexer_skip_action(name)                         \
+        BEGIN(0);                                           \
+        switch (context_should_skip(context, yytext[0])) {  \
+            case SCTX_SA_NONE:                              \
+            case SCTX_SA_EXIT:                              \
+                return yytext[0];                           \
+                                                            \
+            case SCTX_SA_START:                             \
+                logd("skip: " #name);                       \
+                BEGIN(SKIP_##name);                         \
+                break;                                      \
+                                                            \
+            otherwise_error                                 \
+        }
+
     #define YYSTYPE MYYSTYPE
     #define YYLTYPE MYYLTYPE
     #define YY_DECL int myylex(MYYSTYPE* yylval_param, MYYLTYPE* yylloc_param, void* yyscanner, se_context* context)
@@ -86,6 +97,7 @@ WS     [ \t\v\f]
 %s SKIP_BODY
 %s SKIP_PARAMETERS
 %s SKIP_STATEMENT
+%s SKIP_GENERICS
 
 %%
 
@@ -93,35 +105,10 @@ WS     [ \t\v\f]
 "/*"                    { consume_multi_line_comment(yyscanner); }
 "//".*                  { /* consume a single-line comment */    }
 
-
-    /* skip start */
-<SKIP>"{"               {
-                            logd("skip: body");
-                            ++context->skip_pair_count;
-                            context->skip_until = '}';
-                            BEGIN(0);
-                            BEGIN(SKIP_BODY);
-                        }
-
-<SKIP>"("               {
-                            logd("skip: parameters");
-                            ++context->skip_pair_count;
-                            context->skip_until = ')';
-                            BEGIN(0);
-                            BEGIN(SKIP_PARAMETERS);
-                        }
-
-<SKIP>"="               {
-                            logd("skip: statement");
-                            context->skip_until = ';';
-                            BEGIN(0);
-                            BEGIN(SKIP_STATEMENT);
-                        }
-
-    /* skip handler */
-<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT>"\n"                            { yylloc_param->first_line++; yylloc_param->last_line++; }
-<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT>{CPREF}?"'"([^'\\\n]|{CHR})+"'" { logd("skip: consuming a string"); }
-<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT>{SPREF}?\"([^"\\\n]|{CHR})*\"   { logd("skip: consuming a character"); }
+    /* skip: consume strings and newlines */
+<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT,SKIP_GENERICS>"\n"                            { yylloc_param->first_line++; yylloc_param->last_line++; }
+<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT,SKIP_GENERICS>{CPREF}?"'"([^'\\\n]|{CHR})+"'" { logd("skip: consuming a string"); }
+<SKIP_BODY,SKIP_PARAMETERS,SKIP_STATEMENT,SKIP_GENERICS>{SPREF}?\"([^"\\\n]|{CHR})*\"   { logd("skip: consuming a character"); }
 
     /* skip body */
 <SKIP_BODY>"{"          {
@@ -134,14 +121,12 @@ WS     [ \t\v\f]
                             --context->skip_pair_count;
                             if (context->skip_pair_count == 0) {
                                 BEGIN(0);
-                                context->skip_until = 0;
+                                context_finish_skip(context);
                                 return TOKEN_SKIPPED_BODY;
                             }
                         }
 
-<SKIP_BODY>[^{}\n]+ {
-                        logd("discard %s", yytext);
-                    }
+<SKIP_BODY>[^{}\n]+     { logd("discard %s", yytext); }
 
     /* skip parameters */
 <SKIP_PARAMETERS>"("    {
@@ -154,19 +139,15 @@ WS     [ \t\v\f]
                             --context->skip_pair_count;
                             if (context->skip_pair_count == 0) {
                                 BEGIN(0);
-                                context->skip_until = 0;
-                                /* todo make this optional */
+                                context_finish_skip(context);
+
                                 logd("parameter skip: forwarding to body skip");
-                                // todo DO NOT do it in case there is no body!
-                                context->expect_skip_from = true;
-                                consider_skip();
+                                context_skip_specific_unless(context, context->pass, '{', ';');
                                 return TOKEN_SKIPPED_PARAMETERS;
                             }
                         }
 
-<SKIP_PARAMETERS>[^()\n]+   {
-                                logd("discard %s", yytext);
-                            }
+<SKIP_PARAMETERS>[^()\n]+   { logd("discard %s", yytext); }
 
     /* skip statement */
 <SKIP_STATEMENT>"{"     {
@@ -183,6 +164,7 @@ WS     [ \t\v\f]
                             if (context->skip_pair_count == 0) {
                                 logd("statement skip: met terminal ;")
                                 BEGIN(0);
+                                context_finish_skip(context);
                                 return TOKEN_SKIPPED_STATEMENT;
                             } else {
                                 logd("statement skip: met non-terminal ;")
@@ -190,6 +172,29 @@ WS     [ \t\v\f]
                         }
 
 <SKIP_STATEMENT>[^{};"'\n]+ {
+                                logd("discard %s", yytext);
+                            }
+
+    /* skip generics */
+<SKIP_GENERICS>"<"      {
+                            logd("generic skip: counting <");
+                            ++context->skip_pair_count;
+                        }
+
+<SKIP_GENERICS>">"          {
+                                //todo make this a function/macro
+                                logd("generic skip: counting >");
+                                --context->skip_pair_count;
+                                if (context->skip_pair_count == 0) {
+                                    BEGIN(0);
+                                    context_finish_skip(context);
+
+                                    logd("generic skip: forwarding to parameter skip");
+                                    context_skip_specific_unless(context, context->pass, '(', SCTX_SKIP_ANY);
+                                }
+                            }
+
+<SKIP_GENERICS>[^<>\n]+     {
                                 logd("discard %s", yytext);
                             }
 
@@ -228,7 +233,7 @@ WS     [ \t\v\f]
                             }
 
     /* identifier */
-{AZ}{AN}*		            { consider_skip(); return ast_lex_token(context, yylval_param, yytext); }
+{AZ}{AN}*		            { return ast_lex_token(context, yylval_param, yytext); }
 
 
     /* integer constants */
@@ -317,8 +322,8 @@ WS     [ \t\v\f]
 "--"				{ return TOKEN_OP_DECREMENT;        }
 
     /* binary operators */
-">>"				{ return TOKEN_OP_SHIFT_RIGHT;      }
-"<<"				{ return TOKEN_OP_SHIFT_LEFT;       }
+    /* ">>"				{ return TOKEN_OP_SHIFT_RIGHT;      } */
+    /* "<<"				{ return TOKEN_OP_SHIFT_LEFT;       } */
 "&&"				{ return TOKEN_OP_LOGIC_AND;        }
 "||"				{ return TOKEN_OP_LOGIC_OR;         }
 "<="				{ return TOKEN_OP_LESS_EQUAL;       }
@@ -329,41 +334,15 @@ WS     [ \t\v\f]
     /* other tokens */
 "..."               { return TOKEN_C_VARARG;            }
 ";"					{ return ';'; }
-"{"                 {
-                        start_skip_action
-                            logd("skip: body");
-                            ++context->skip_pair_count;
-                            context->skip_until = '}';
-                            BEGIN(0);
-                            BEGIN(SKIP_BODY);
-                        end_skip_action
-                        else return '{';
-                    }
+"{"                 { lexer_skip_action(BODY); }
 "}"			        { return '}'; }
-"("                 {
-                        start_skip_action
-                            logd("skip: parameters");
-                            ++context->skip_pair_count;
-                            context->skip_until = ')';
-                            BEGIN(0);
-                            BEGIN(SKIP_PARAMETERS);
-                        end_skip_action
-                        else return '(';
-                    }
-"="                 {
-                        start_skip_action
-                            logd("skip: statement");
-                            context->skip_until = ';';
-                            BEGIN(0);
-                            BEGIN(SKIP_STATEMENT);
-                        end_skip_action
-                        else return '=';
-                    }
+"("                 { lexer_skip_action(PARAMETERS); }
+"="                 { lexer_skip_action(STATEMENT); }
 ","					{ return ','; }
 ":"					{ return ':'; }
 ")"					{ return ')'; }
-("["|"<:")			{ return '['; }
-("]"|":>")			{ return ']'; }
+"["			        { return '['; }
+"]"     			{ return ']'; }
 "."					{ return '.'; }
 "&"					{ return '&'; }
 "!"					{ return '!'; }
@@ -373,7 +352,7 @@ WS     [ \t\v\f]
 "*"					{ return '*'; }
 "/"					{ return '/'; }
 "%"					{ return '%'; }
-"<"					{ return '<'; }
+"<"                 { lexer_skip_action(GENERICS); }
 ">"					{ return '>'; }
 "^"					{ return '^'; }
 "|"					{ return '|'; }

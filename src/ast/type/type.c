@@ -57,6 +57,7 @@ ast_type* ast_type_new(ast_type_kind kind, void* value) {
 void ast_type_clone_to(ast_type* dest, ast_type src) {
     dest->kind = src.kind;
     dest->u__any = src.u__any;
+    dest->_generic_impl_index = src._generic_impl_index;
     arraylist_init_empty(ast_type_level)(&dest->level_list);
     iterate_array(i, src.level_list.size) {
         arl_add(ast_type_level, dest->level_list, src.level_list.data[i]);
@@ -129,18 +130,17 @@ expression_data* ast_type_constant_array_size(ast_type* value) {
 }
 
 /**
- * Converts a lexical type to a string
+ * Converts a lexical type to a string,
+ * showing its display name
  * 
  * @param[in] value Pointer to the type
  * 
  * @return String representation of the type
  */
-char* ast_type_to_string(ast_type* value) {
+char* ast_type_display_name(ast_type* value) {
     char* name;
-    char* buffer;
-    size_t buffer_size = 1 /* null terminator */;
 
-    /* find typename of the type */
+    /* find the typename */    
     switch (value->kind) {
         case AST_TYPE_PRIMITIVE:
             name = value->u_primitive->name;
@@ -151,79 +151,15 @@ char* ast_type_to_string(ast_type* value) {
             break;
 
         case AST_TYPE_STRUCTURE:
-            if (value->u_structure->name != NULL) {
-                name = value->u_structure->name;
-            } else {
-                /* todo: move it to another method */
-                list(dc_structure_member) members = value->u_structure->member_list;
-                char* prefix = "type { ";
-                size_t internal_buffer_size = strlen(prefix);
-
-                char** member_names = allocate_array(char**, members.size);
-                size_t* member_name_sizes = allocate_array(size_t, members.size);
-
-                for (int i = 0; i < members.size; i++) {
-                    char* internal_type = ast_type_to_string(&members.data[i].type);
-                    member_name_sizes[i] = strlen(internal_type);
-                    member_name_sizes[i] += 1;
-                    member_name_sizes[i] += strlen(members.data[i].name);
-                    if (i != members.size - 1) {
-                        member_name_sizes[i] += 2;
-                    }
-                    internal_buffer_size += member_name_sizes[i];
-
-                    member_names[i] = allocate_array(char*, member_name_sizes[i] + 1);
-
-                    strncpy(member_names[i], internal_type, member_name_sizes[i]);
-                    member_name_sizes[i] = strlen(internal_type);
-                    free(internal_type);
-
-                    member_names[i][member_name_sizes[i]] = ' ';
-                    member_name_sizes[i] += 1;
-
-                    strcpy(member_names[i] + member_name_sizes[i], members.data[i].name);
-                    member_name_sizes[i] += strlen(members.data[i].name);
-
-                    if (i != members.size - 1) {
-                        member_names[i][member_name_sizes[i]] = ',';
-                        member_name_sizes[i] += 1;
-                        member_names[i][member_name_sizes[i]] = ' ';
-                        member_name_sizes[i] += 1;
-                    }
-
-                    member_names[i][member_name_sizes[i]] = 0;
-                }
-
-                char* postfix = " };";
-                internal_buffer_size += strlen(postfix);
-
-                char* internal_buffer = allocate_array(char, internal_buffer_size + 1);
-                strcpy(internal_buffer, prefix);
-                internal_buffer_size = strlen(prefix);
-
-                for (int i = 0; i < members.size; i++) {
-                    strncpy(internal_buffer + internal_buffer_size, member_names[i], member_name_sizes[i]);
-                    internal_buffer_size += member_name_sizes[i];
-                }
-
-                strcpy(internal_buffer + internal_buffer_size, postfix);
-                internal_buffer_size += strlen(postfix);
-                internal_buffer[internal_buffer_size] = 0;
-
-                name = internal_buffer;
-            }
+            name = dc_structure_display_name(value->u_structure, value->_generic_impl_index);
             break;
 
         case AST_TYPE_ENUM:
-            if (value->u_enum->name != NULL) {
-                name = value->u_enum->name;
-            } else {
-                name = "<anonymous enum>";
-            }
+            name = dc_enum_display_name(value->u_enum, value->_generic_impl_index);
             break;
 
         case AST_TYPE_FUNCTION:
-            name = "<function>";
+            name = dc_function_display_name(value->u_function, value->_generic_impl_index);
             break;
 
         otherwise_error
@@ -231,7 +167,7 @@ char* ast_type_to_string(ast_type* value) {
 
     /* calculate size of the typename */
     size_t name_size = strlen(name);
-    buffer_size += name_size;
+    size_t buffer_size = name_size;
 
     /* calculate size of the level list */
     iterate_array(i, value->level_list.size) {
@@ -249,8 +185,8 @@ char* ast_type_to_string(ast_type* value) {
     }
 
     /* allocate the buffer and append the typename */
-    buffer = allocate_array(char, buffer_size);
-    buffer[buffer_size - 1] = 0;
+    char* buffer = allocate_array(char, buffer_size + 1);
+    buffer[buffer_size] = 0;
     strcpy(buffer, name);
 
     /* append the level list after the typename */
@@ -270,6 +206,106 @@ char* ast_type_to_string(ast_type* value) {
             otherwise_error
         }
         pos++;
+    }
+
+    return buffer;
+}
+
+/**
+ * Mangles the name of a type in case it is anonymous
+ * or has generics, ignoring the type's level list
+ * 
+ * @param[in] value Pointer to the type
+ * 
+ * @return Identifier-valid plain mangled name of the type
+ */
+char* ast_type_mangled_name_plain(ast_type* value) {
+    /* a trick to the ignore type levels */
+    size_t old_size = value->level_list.size;
+    value->level_list.size = 0;
+
+    char* name = ast_type_mangled_name(value);
+
+    value->level_list.size = old_size;
+    return name;
+}
+
+/**
+ * Mangles the name of a type in case it is anonymous
+ * or has generics
+ * 
+ * @param[in] value Pointer to the type
+ * 
+ * @return Identifier-valid mangled name of the type
+ */
+char* ast_type_mangled_name(ast_type* value) {
+    char* name;
+
+    /* mangle the typename */    
+    switch (value->kind) {
+        case AST_TYPE_PRIMITIVE:
+            name = value->u_primitive->name;
+            break;
+
+        case AST_TYPE_GENERIC:
+            name = ast_type_mangled_name(&value->u_generic->_impl);
+            break;
+
+        case AST_TYPE_STRUCTURE:
+            name = dc_structure_mangled_name(value->u_structure, value->_generic_impl_index);
+            break;
+
+        case AST_TYPE_ENUM:
+            name = dc_enum_mangled_name(value->u_enum, value->_generic_impl_index);
+            break;
+
+        case AST_TYPE_FUNCTION:
+            name = dc_function_mangled_name(value->u_function, value->_generic_impl_index);
+            break;
+
+        otherwise_error
+    }
+
+    /* calculate size of the typename */
+    size_t name_size = strlen(name);
+    size_t buffer_size = name_size;
+
+    /* calculate size of the level list */
+    iterate_array(i, value->level_list.size) {
+        switch (value->level_list.data[i].kind) {
+            case AT_LEVEL_POINTER:
+                buffer_size += strlen("__cst_pointer");
+            break;
+
+            case AT_LEVEL_ARRAY:
+                buffer_size += strlen("__cst_array");
+            break;
+            
+            otherwise_error
+        }
+    }
+
+    /* allocate the buffer and append the typename */
+    char* buffer = allocate_array(char, buffer_size + 1);
+    buffer[buffer_size ] = 0;
+    strcpy(buffer, name);
+
+    /* append the level list after the typename */
+    index_t pos = name_size;
+    iterate_array(i, value->level_list.size) {
+        switch (value->level_list.data[i].kind) {
+            case AT_LEVEL_POINTER:
+                strcpy(buffer + pos, "__cst_pointer");
+                pos += strlen("__cst_pointer");
+                break;
+
+            case AT_LEVEL_ARRAY:
+                strcpy(buffer + pos, "__cst_array");
+                pos += strlen("__cst_array");
+                break;
+
+            otherwise_error
+        }
     }
 
     return buffer;

@@ -20,7 +20,7 @@ static inline void ex_binary_check_number(op_binary operator, ast_type* type) {
     expect(ast_type_is_pp_number(type))
         otherwise("expected a number for a binary operation \"%s\", got \"%s\"",
             op_binary_strings[operator], 
-            ast_type_to_string(type));
+            ast_type_display_name(type));
 }
 
 
@@ -28,7 +28,7 @@ static inline void ex_binary_check_integer(op_binary operator, ast_type* type) {
     expect(ast_type_is_pp_integer(type))
         otherwise("expected an integer for a binary operation \"%s\", got \"%s\"",
             op_binary_strings[operator], 
-            ast_type_to_string(type));
+            ast_type_display_name(type));
 }
 
 
@@ -36,7 +36,7 @@ static inline void ex_binary_check_boolean(op_binary operator, ast_type* type) {
     expect(ast_type_is_pp_boolean(type))
         otherwise("expected a boolean for a binary operation \"%s\", got \"%s\"",
             op_binary_strings[operator],
-            ast_type_to_string(type));
+            ast_type_display_name(type));
 }
 
 
@@ -44,8 +44,8 @@ static inline void ex_binary_check_equal(op_binary operator, ast_type* a, ast_ty
     expect(ast_type_can_merge(a, b))
         otherwise("expected equal types for a binary operation \"%s\", got \"%s\" and \"%s\"",
                     op_binary_strings[operator], 
-                    ast_type_to_string(a), 
-                    ast_type_to_string(b));
+                    ast_type_display_name(a), 
+                    ast_type_display_name(b));
 }
 
 
@@ -90,8 +90,8 @@ iapi_binary_properties(numerical) {
         expect((tmp = ast_type_merge_extend(&parent->type, &other->type)) != NULL)
             otherwise("incompatible types for a binary operation \"%s\": \"%s\" and \"%s\" require an explicit cast because of integer truncation",
                         op_binary_strings[operator],
-                        ast_type_to_string(&parent->type),
-                        ast_type_to_string(&other->type));
+                        ast_type_display_name(&parent->type),
+                        ast_type_display_name(&other->type));
     }
 
     iset_type(merge) {
@@ -120,8 +120,8 @@ iapi_binary_properties(integer) {
         expect((tmp = ast_type_merge_extend(&parent->type, &other->type)) != NULL)
             otherwise("incompatible types for a binary operation \"%s\": \"%s\" and \"%s\" require an explicit cast because of integer truncation",
                         op_binary_strings[operator],
-                        ast_type_to_string(&parent->type),
-                        ast_type_to_string(&other->type));
+                        ast_type_display_name(&parent->type),
+                        ast_type_display_name(&other->type));
     }
 
     iset_type(merge) {

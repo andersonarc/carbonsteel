@@ -13,6 +13,8 @@
 #include "language/native/parser.h"
 #include "ast/type/check.h"
 
+//todo support native variables
+
     /* functions */
 /**
  * Translates a C-native declaration specifier list
@@ -57,7 +59,7 @@ ast_type cst_native_declspecs_translate(se_context* context, c_declaration_speci
 
             case C_TS_TYPE:
                 ast_type* current = &in.type_specs.data[i].u_type;
-                logd("walk: <%s>", ast_type_to_string(current));
+                logd("walk: <%s>", ast_type_display_name(current));
 
                 /* handle types like "long int" and "long long int", etc */
                 if (has_been_set) {
@@ -250,7 +252,7 @@ arraylist(declaration) cst_native_declaration_translate(se_context* context, c_d
                 dc.ctoken = CTOKEN_ALIAS_NAME;
                 dc.u_alias = al;
 
-                logd("[native] %s = <%s(...)>", ast_type_to_string(&fn->return_type), this.name);
+                logd("[native] %s = <%s(...)>", ast_type_display_name(&fn->return_type), this.name);
             } else {
                 /* or wrap it into a declaration straightaway*/
                 dc.is_full = true;
@@ -261,7 +263,7 @@ arraylist(declaration) cst_native_declaration_translate(se_context* context, c_d
                 dc.ctoken = CTOKEN_FUNCTION_NAME;
                 dc.u_function = fn;
 
-                logd("[native] %s %s(...)", ast_type_to_string(&fn->return_type), this.name);
+                logd("[native] %s %s(...)", ast_type_display_name(&fn->return_type), this.name);
             }
         } else {
             /* wrap it into a declaration */
@@ -273,7 +275,7 @@ arraylist(declaration) cst_native_declaration_translate(se_context* context, c_d
             dc.ctoken = CTOKEN_ALIAS_NAME;
             dc.u_alias = al;
             
-            logd("[native] %s = <%s>", this.name, ast_type_to_string(&al->target));
+            logd("[native] %s = <%s>", this.name, ast_type_display_name(&al->target));
         }
 
         /* add it to the result list */
@@ -298,7 +300,7 @@ arraylist(declaration) cst_native_declaration_translate(se_context* context, c_d
         dc.ctoken = CTOKEN_ALIAS_NAME;
         dc.u_alias = al;
         
-        logd("[native] <abstract> <%s>;", ast_type_to_string(&al->target));
+        logd("[native] <abstract> <%s>;", ast_type_display_name(&al->target));
 
         /* add it to the result list */
         arraylist_add(declaration)(&result, dc);

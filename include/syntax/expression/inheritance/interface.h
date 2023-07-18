@@ -11,7 +11,6 @@
  *  the code more readable.
  * 
  *  Inheritance API macro:
- * @todo think about naming. need a convention.
  *      iapi_init_union_from_expression = expression_inheritance
  *      iapi_init_union_from_extern     = extern_inheritance
  *          - initializes data from a parent and a union kind

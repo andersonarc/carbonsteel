@@ -26,13 +26,13 @@ iapi_append_level_from_expression(PL, postfix, index, INDEX, expression) {
     iexpect_parameter(number) {
         expect(ast_type_is_pp_number(&index->type))
             otherwise("expected a numerical index for [] operation, got type \"%s\"", 
-                        ast_type_to_string(&index->type));
+                        ast_type_display_name(&index->type));
     }
 
     iexpect_parent(array) {
         expect(ast_type_is_array(&parent->type))
             otherwise("expected an array for [] operation, got type \"%s\"", 
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&parent->type));
     }
 
     iset_type(assign pop) {
@@ -52,7 +52,7 @@ iapi_append_level(PL, postfix, invocation, INVOCATION, list(expression_ptr)) {
     iexpect_parent(function) {
         expect(parent->type.kind == AST_TYPE_FUNCTION)
             otherwise("expected a function for a () operation, got \"%s\"", 
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&parent->type));
     }
 
     dc_function* function = parent->type.u_function;
@@ -82,10 +82,10 @@ iapi_append_level(PL, postfix, invocation, INVOCATION, list(expression_ptr)) {
             
             expect(ast_type_can_merge(&parameter->type, &argument->properties->type))
                 otherwise("expected type \"%s\" for parameter \"%s\" of function \"%s\", got type \"%s\"",
-                                ast_type_to_string(&parameter->type), 
+                                ast_type_display_name(&parameter->type), 
                                 parameter->name, 
                                 function->name, 
-                                ast_type_to_string(&argument->properties->type));
+                                ast_type_display_name(&argument->properties->type));
         }
     }
 
@@ -103,13 +103,13 @@ self_inheritance_before(postfix, property, dc_structure_member*, char* property_
     iexpect_parent(plain) {
         expect(ast_type_is_plain(&parent->type))
             otherwise("expected a plain structure for . operation, got type \"%s\"", 
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&parent->type));
     }
 
     iexpect_parent(structure) {
         expect(parent->type.kind == AST_TYPE_STRUCTURE)
             otherwise("expected a structure for . operation, got type \"%s\"", 
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&parent->type));
     }
 
     arl_find_by_name(
@@ -135,13 +135,13 @@ self_inheritance_before(postfix, pointer_property, dc_structure_member*, char* p
     iexpect_parent(single pointer) {
         expect(ast_type_is_single_pointer(&parent->type))
             otherwise("expected a structure pointer for -> operation, got type \"%s\"", 
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&parent->type));
     }
 
     iexpect_parent(structure) {
         expect(parent->type.kind == AST_TYPE_STRUCTURE)
             otherwise("expected a structure pointer for -> operation, got type \"%s\"", 
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&parent->type));
     }
 
     arl_find_by_name(
@@ -166,7 +166,7 @@ iapi_init_with_kind(P, postfix, increment, INCREMENT) {
     iexpect_parent(number) {
         expect(ast_type_is_pp_number(&parent->type))
                     otherwise("cannot increment a non-number of type \"%s\"", 
-                        ast_type_to_string(&parent->type));
+                        ast_type_display_name(&parent->type));
     }
 
     iset_type(assign) {
@@ -185,7 +185,7 @@ iapi_init_with_kind(P, postfix, increment, INCREMENT) {
 iapi_init_with_kind(P, postfix, decrement, DECREMENT) {
     expect(ast_type_is_pp_number(&parent->type))
             otherwise("cannot decrement a non-number of type \"%s\"", 
-                ast_type_to_string(&parent->type));
+                ast_type_display_name(&parent->type));
 
     iset_type(assign) {
         this->type = parent->type;

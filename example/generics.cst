@@ -1,0 +1,19 @@
+int main() {
+    printf("Enter 5 numbers: \n");
+    
+
+    return 0;
+}
+
+list<char> list_invert(list<char> in) {
+       
+}
+
+list<list<int>> another() {}
+
+type list<T> {
+    size_t size;
+    T[] data;
+};
+
+import native stdio;

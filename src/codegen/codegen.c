@@ -73,7 +73,11 @@ cgd_ex(constructor) {
             out(string)(" = malloc(sizeof(");
             cg(type)(ex->type);
             out(string)(") * ");
-            cg(ex_expression_data)(ex->u_array_size);
+            if (ex->u_array_size != NULL) {
+                cg(ex_expression_data)(ex->u_array_size);
+            } else {
+                out(format)("%zu", ex->argument_list.size);
+            }
             out(string)(");\n");
 
             iterate_array(i, ex->argument_list.size) {
@@ -84,7 +88,11 @@ cgd_ex(constructor) {
             }
         } else {
             out(char)('[');
-            cg(ex_expression_data)(ex->u_array_size);
+            if (ex->u_array_size != NULL) {
+                cg(ex_expression_data)(ex->u_array_size);
+            } else {
+                out(format)("%zu", ex->argument_list.size);
+            }
 
             out(string)("] = { ");
 
@@ -157,15 +165,34 @@ cgd_dc(structure_member) {
     out(format)(" %s;\n", dc->name);
 }
 
-cgd_dc(structure) {
-    out(format)("typedef struct %s {\n", dc->name);
+#define _concat_arg(a, b) a, b
+cgd(structure_body, _concat_arg(dc_structure* dc, index_t i)) {
+    char* mangled = dc_structure_mangled_name(dc, i);
+    out(format)("typedef struct %s {\n", mangled);
     
     tabs++;
     iterate_array(i, dc->member_list.size) {
         cg(structure_member)(&dc->member_list.data[i]);
     }
-    out(format)("} %s;\n\n", dc->name);
+    out(format)("} %s;\n\n", mangled);
 }
+
+cgd_dc(structure) {
+    if (dc->generics.size == 0) {
+        //todo define a cg2 macro
+        cg(structure_body)(_concat_arg(dc, -1));
+    } else {
+        for (size_t i = 0; i < dc->_generic_impls.size; i++) {
+            /* apply the generic implementation */
+            list(ast_type) impl = dc->_generic_impls.data[i];
+            dc_structure_generic_apply_impl(dc, impl);
+
+            /* codegen */
+            cg(structure_body)(_concat_arg(dc, i));
+        }
+    }
+}
+#undef _concat_arg
 
     /** TYPE **/
 
@@ -175,16 +202,20 @@ cgd_type() {
             out(string)(type->u_primitive->code_name);
             break;
 
+        case AST_TYPE_GENERIC:
+            ast_type* impl = dc_generic_get_impl(type);
+            cg(type)(impl);
+
+            arraylist_free(ast_type_level)(&impl->level_list);
+            free(impl);
+            return; /* ! */
+
         case AST_TYPE_STRUCTURE:
-            if (type->u_structure->name != NULL) {
-                out(string)(type->u_structure->name);
-            }
+            out(string)(dc_structure_mangled_name(type->u_structure, type->_generic_impl_index));
             break;
 
         case AST_TYPE_ENUM:
-            if (type->u_enum->name != NULL) {
-                out(string)(type->u_enum->name);
-            }
+            out(string)(dc_enum_mangled_name(type->u_enum, type->_generic_impl_index));
             break;
 
         case AST_TYPE_FUNCTION:

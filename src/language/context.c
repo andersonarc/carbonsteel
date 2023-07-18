@@ -17,6 +17,7 @@
 #include <dirent.h>
 #include "syntax/declaration/declaration.h" /* declarations */
 #include "misc/memory.h" /* memory allocation */
+#include "misc/string.h"
 #include "language/native/parser.h"
 #include "language/native/lexer.h"
 #include "language/parser.h" /* parser */
@@ -30,6 +31,17 @@ const char* se_context_level_kind_strings[] = {
     "GLOBAL", "IMPORT", "SCOPE", "EXPRESSION", "ENUM", "FLAG"
 };
 
+/**
+ * Parser skip bracket pairs
+ */
+char se_context_skip_data[4][3] = {
+    { '{', '}', 1 },
+    { '(', ')', 1 },
+    { '=', ';', 0 },
+    { '<', '>', 1 }
+};
+#define se_context_skip_data_size (sizeof(se_context_skip_data)/sizeof(char[3]))
+
     /* functions */
 /**
  * Allocates and initializes a new parser context
@@ -41,7 +53,9 @@ se_context* context_new() {
     arl_init(se_context_level, context->stack);
     context->skip_pair_count = 0;
     context->skip_until = 0;
-    context->expect_skip_from = false;
+    context->filename = NULL;
+    context->expect_skip_from = SCTX_SKIP_NONE;
+    context->expect_skip_discard = SCTX_SKIP_NONE;
     context->pass = SCTX_PASS_3;
 
     /* initialize the file list */
@@ -340,6 +354,7 @@ void context_parse_origin(se_context* context, char* filename_) {
     import_file->is_native = false;
     // import_file->last = -1;
     arl_add(se_context_import_file_ptr, context->file_list, import_file);
+    context->filename = filename;
 
     /* do three passes on the file */
     context->pass = SCTX_PASS_1;
@@ -378,7 +393,7 @@ void context_import(se_context* context, dc_import* import) {
         filename = relative_name;
         filename_length = relative_length;
     } else {
-        char* parent_name = arraylist_last(context->file_list)->filename;
+        char* parent_name = copy_string(context->filename);
         ssize_t parent_length = strlen(parent_name);
 
         /* a workaround to find the parent directory of the origin file */
@@ -390,19 +405,17 @@ void context_import(se_context* context, dc_import* import) {
         );
         
         if (parent_length != -1) {
-            
             parent_length++;
+            parent_name[parent_length] = 0;
         } else {/* special case: no delimiter found in parent path */
             parent_name = "";
             parent_length = 0;
         }
 
         /* merge the file and directory paths */
-        filename_length = parent_length + relative_length + 1;
-        filename = allocate_array(char, filename_length);
-        strncpy(filename, parent_name, parent_length);
-        strncpy(filename + parent_length, relative_name, relative_length);
-        filename[filename_length - 1] = 0;
+        filename = cst_strconcat(parent_name, relative_name);
+        filename_length = strlen(filename);
+        free(parent_name);
     }
 
     /* handle repeating (circular/self) imports */
@@ -442,4 +455,91 @@ void context_import(se_context* context, dc_import* import) {
             context_parse(context, filename);
         }
     }
+}
+
+
+
+/**
+ * Set the context to skip mode if it is currently on the specified pass
+ * Any character, No discards
+ */
+void context_skip(se_context* context, se_context_pass pass) {
+    if (context->pass == pass) {
+        context->expect_skip_from = SCTX_SKIP_ANY;
+        context->expect_skip_discard = SCTX_SKIP_NONE;
+    }
+}
+
+/**
+ * Set the context to skip mode if it is currently on the specified pass
+ * Specified character only, No discards
+ */
+void context_skip_specific(se_context* context, se_context_pass pass, char c) {
+    if (context->pass == pass) {
+        context->expect_skip_from = c;
+        context->expect_skip_discard = SCTX_SKIP_NONE;
+    }
+}
+
+/**
+ * Set the context to skip mode if it is currently on the specified pass
+ * Specified character only, Specified discard character
+ */
+void context_skip_specific_unless(se_context* context, se_context_pass pass, char c, int d) {
+    if (context->pass == pass) {
+        context->expect_skip_from = c;
+        context->expect_skip_discard = d;
+    }
+}
+
+/**
+ * Checks if the lexer should enter skip mode, leave it 
+ * or do nothing depending on the current character,
+ * and also sets it up for further actions
+ */
+se_context_skip_action context_should_skip(se_context* context, char c) {
+    /* handle no-skip conditions */
+    if (context->expect_skip_from == SCTX_SKIP_NONE) {
+        logd("skip: expected none!");
+        return SCTX_SA_NONE;
+    }
+   
+    /* handle discard conditions */
+    if ((context->expect_skip_discard == SCTX_SKIP_ANY
+         && context->expect_skip_from != c) 
+         || context->expect_skip_discard == c) {
+        logd("skip: discarded, got %c", c);
+        return SCTX_SA_EXIT;
+    }
+
+    /* handle normal skips */
+    if (context->expect_skip_from == SCTX_SKIP_ANY || context->expect_skip_from == c) {
+        logd("skip: got %c, looking for pair", c);
+        int pair = -1;
+        for (int i = 0; i < se_context_skip_data_size; i++) {
+            if (se_context_skip_data[i][0] == c) {
+                pair = i;
+            }
+        }
+        if (pair == -1) {
+            logfe("no skip pair found for %c", c);
+        }
+
+        /* enter skip mode*/
+        context->skip_until = se_context_skip_data[pair][1];
+        context->skip_pair_count = se_context_skip_data[pair][2];
+
+        return SCTX_SA_START;
+    } else {
+        logd("skip: expected %c, got %c", context->expect_skip_from, c);
+        return SCTX_SA_NONE;
+    }
+}
+
+/**
+ * Cleans up the context after the lexer exits the skip mode
+ */
+void context_finish_skip(se_context* context) {
+    context->expect_skip_from = SCTX_SKIP_NONE;
+    context->expect_skip_discard = SCTX_SKIP_NONE;
 }

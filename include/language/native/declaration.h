@@ -15,6 +15,7 @@
 #include "syntax/predeclaration.h"
 #include "syntax/declaration/declaration.h"
 #include "ast/type/primitive.h" /* primitives */
+#include "misc/string.h"
 
     /* functions */
 /**
@@ -25,12 +26,7 @@
  * @return Carbonsteel-compatible enum name, allocated with malloc
  */
 static inline char* cst_native_enum_name(char* name) {
-    size_t name_length = strlen(name);
-    char* concat = allocate_array(char, CST_NATIVE_ENUM_PREFIX_STRLEN + name_length + 1);
-    strcpy(concat, CST_NATIVE_ENUM_PREFIX);
-    strncpy(concat + CST_NATIVE_ENUM_PREFIX_STRLEN, name, name_length);
-    concat[CST_NATIVE_ENUM_PREFIX_STRLEN + name_length] = 0;
-    return concat;
+    return cst_strconcat(CST_NATIVE_ENUM_PREFIX, name);
 }
 
 /**
@@ -41,12 +37,7 @@ static inline char* cst_native_enum_name(char* name) {
  * @return Carbonsteel-compatible struct name, allocated with malloc
  */
 static inline char* cst_native_struct_name(char* name) {
-    size_t name_length = strlen(name);
-    char* concat = allocate_array(char, CST_NATIVE_STRUCT_PREFIX_STRLEN + name_length + 1);
-    strcpy(concat, CST_NATIVE_STRUCT_PREFIX);
-    strncpy(concat + CST_NATIVE_STRUCT_PREFIX_STRLEN, name, name_length);
-    concat[CST_NATIVE_STRUCT_PREFIX_STRLEN + name_length] = 0;
-    return concat;
+    return cst_strconcat(CST_NATIVE_STRUCT_PREFIX, name);
 }
 
 /**

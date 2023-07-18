@@ -539,6 +539,8 @@ struct_or_union_specifier
 			$$->is_full = true;
 			$$->name = $structure_name;
 			$$->member_list = $structure_body;
+			li_init_empty(dc_generic_ptr, $$->generics);
+			arraylist_init_empty(list(ast_type))(&$$->_generic_impls);
 		}
 	
 	| struct_or_union_prefix structure_body
@@ -547,6 +549,8 @@ struct_or_union_specifier
 			$$->is_full = true;
 			$$->name = NULL;
 			$$->member_list = $structure_body;
+			li_init_empty(dc_generic_ptr, $$->generics);
+			arraylist_init_empty(list(ast_type))(&$$->_generic_impls);
 		}
 
 	| struct_or_union_prefix structure_name
@@ -557,6 +561,7 @@ struct_or_union_specifier
 				dc_structure* st = allocate(dc_structure);
 				st->is_full = false;
 				st->name = actual;
+				li_init_empty(dc_generic_ptr, st->generics);
 				li_init_empty(dc_structure_member, st->member_list);
 
 				ast_declare_native(&context->ast, 

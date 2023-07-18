@@ -63,7 +63,9 @@ src = files('src/main.c',
             'src/syntax/expression/operator.c',
             'src/syntax/expression/postfix.c',
             'src/syntax/expression/unary.c',
-            'src/language/native/declaration.c')
+            'src/syntax/declaration/declaration.c',
+            'src/language/native/declaration.c',
+            'src/misc/string.c')
 include = include_directories('include')
 
 # compile executable

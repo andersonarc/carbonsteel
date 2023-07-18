@@ -163,6 +163,14 @@ bool ast_type_is_pp_boolean(ast_type* value) {
     }
 
     ast_type* ast_type_merge_extend(ast_type* a, ast_type* b) {
+        /* handle generics */
+        while (a->kind == AST_TYPE_GENERIC) {
+            a = dc_generic_get_impl(a);
+        }
+        while (b->kind == AST_TYPE_GENERIC) {
+            b = dc_generic_get_impl(b);
+        }
+
         if (ast_type_is_equal(a, b)) {
             return a;
         }
@@ -220,6 +228,24 @@ bool ast_type_is_pp_boolean(ast_type* value) {
  * @return true if the types are equal
  */
 bool ast_type_is_equal(ast_type* a, ast_type* b) {
+    /* handle generics */
+    if (a->kind == AST_TYPE_GENERIC) {
+        a = dc_generic_get_impl(a);
+        bool result = ast_type_is_equal(a, b);
+
+        arraylist_free(ast_type_level)(&a->level_list);
+        free(a);
+        return result;
+    }
+    if (b->kind == AST_TYPE_GENERIC) {
+        b = dc_generic_get_impl(b);
+        bool result = ast_type_is_equal(a, b);
+
+        arraylist_free(ast_type_level)(&b->level_list);
+        free(b);
+        return result;
+    }
+
     if (a->kind != b->kind) return false;
     if (a->level_list.size != b->level_list.size) return false;
     iterate_array(i, a->level_list.size) {

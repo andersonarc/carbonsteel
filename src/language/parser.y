@@ -96,10 +96,7 @@
 		OP_DECREMENT     	"--"
 
 	/* binary operators */
-%token	OP_SHIFT_LEFT  		"<<" 				
-		OP_SHIFT_RIGHT   	">>"
-
-		OP_LESS_EQUAL  		"<=" 				
+%token	OP_LESS_EQUAL  		"<=" 				
 		OP_GREATER_EQUAL 	">="
 
 		OP_EQUAL       		"==" 				
@@ -140,6 +137,7 @@
 %token <dc_alias*> 				ALIAS_NAME 			"alias name"
 %token <ast_type_primitive*>	PRIMITIVE_NAME		"primitive type name"
 %token <dc_enum*>				ENUM_NAME			"enum name"
+%token <dc_generic*>			GENERIC_NAME		"generic name"
 
 	/* value references */
 %token <dc_st_variable*>		VARIABLE_NAME  			"variable name"
@@ -174,7 +172,11 @@
 
 	/* structure */
 %nterm  <char*> 		 structure_name
+%nterm 	<dc_structure*>  structure_prefix
 %nterm 	<dc_structure*>  structure_declaration
+%nterm  <list(dc_generic_ptr)>			  generics
+%nterm  <arraylist(dc_generic_ptr)>	      generic_list
+%nterm  <dc_generic_ptr>				  generic
 %nterm 	<list(dc_structure_member)>		  structure_body
 %nterm 	<arraylist(dc_structure_member)>  structure_member_list
 %nterm	<dc_structure_member>			  structure_member
@@ -240,7 +242,7 @@
 %left '&'
 %left OP_EQUAL OP_NOT_EQUAL
 %left OP_LESS_EQUAL OP_GREATER_EQUAL '<' '>' 
-%left OP_SHIFT_LEFT OP_SHIFT_RIGHT
+%left _OP_SHIFT_LEFT _OP_SHIFT_RIGHT
 %left '+' '-'
 %left '*' '/' '%'
 
@@ -258,6 +260,8 @@
 %nterm  <ast_type>  type
 %nterm  <ast_type>  type_recursive
 %nterm  <ast_type>  type_terminal
+%nterm  <list(ast_type)>  generic_impls
+%nterm  <arraylist(ast_type)>  generic_impl_list
 
 	/* statement */
 %nterm 	<statement*>  statement
@@ -295,7 +299,7 @@ declaration_list
 	;
 
 declaration
-	: { context_skip(context, 1); }
+	: { context_skip(context, SCTX_PASS_1); }
       declaration_
 	;
 
@@ -415,7 +419,7 @@ function_prefix
 				arl_add(local_declaration, context_current(context)->u_locals, dc);
 			}
 
-			context_skip(context, 2);
+			context_skip(context, SCTX_PASS_2);
 
 			$$ = allocate(dc_function);
 			$$->is_full		=  $type_and_name.is_full;
@@ -527,20 +531,69 @@ structure_name
 		}
 	;
 
-structure_declaration
-	: TYPE structure_name structure_body ';'
+structure_prefix
+	: TYPE 
+		{ context_skip_specific(context, SCTX_PASS_1, '{'); }
+	structure_name generics
 		{
+			context_enter(context, SCTX_SCOPE); 
+
+			iterate_array(i, $generics.size) {
+				local_declaration dc = {
+					.kind = DC_L_GENERIC,
+					.token = TOKEN_GENERIC_NAME,
+					.name = $generics.data[i]->name,
+					.u_generic = $generics.data[i]
+				};
+
+				arl_add(local_declaration, context_current(context)->u_locals, dc);
+			}
+			
 			$$ = allocate(dc_structure);
-			$$->is_full = true;
 			$$->name = $structure_name;
-			$$->member_list = $structure_body;
+			$$->generics = $generics;
+			arraylist_init_empty(list(ast_type))(&$$->_generic_impls);
 		}
-	| TYPE structure_name SKIPPED_BODY ';'
+	;
+
+structure_declaration
+	: structure_prefix structure_body ';'
 		{
-			$$ = allocate(dc_structure);
+			$$ = $structure_prefix;
+			$$->is_full = true;
+			$$->member_list = $structure_body;
+
+			context_exit(context);
+		}
+	| structure_prefix SKIPPED_BODY ';'
+		{
+			$$ = $structure_prefix;
 			$$->is_full = false;
-			$$->name = $structure_name;
 			li_init_empty(dc_structure_member, $$->member_list);
+
+			context_exit(context);
+		}
+		
+	;
+
+generics
+	: '<' generic_list '>'
+		{ li_init_from(dc_generic_ptr, $$, $generic_list); }
+
+	| %empty
+		{ li_init_empty(dc_generic_ptr, $$); }
+	;
+
+generic_list
+	: generic { arraylist_init_with(dc_generic_ptr)(&$$, $generic); }
+	| generic_list[value] generic { arl_assign_add(dc_generic_ptr, $$, $generic, $value); }
+	;
+
+generic
+	: IDENTIFIER
+		{
+			$$ = allocate(dc_generic);
+			$$->name = $IDENTIFIER;
 		}
 	;
 
@@ -669,7 +722,7 @@ global_variable_declaration_statement
 
 			expect(ast_type_can_merge(&$$->type, &$expression_block.value->properties->type))
 				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
-							ast_type_to_string(&$expression_block.value->properties->type), ast_type_to_string(&$$->type));
+							ast_type_display_name(&$expression_block.value->properties->type), ast_type_display_name(&$$->type));
 		}
 	| type_and_name SKIPPED_STATEMENT
 		{
@@ -691,7 +744,7 @@ variable_declaration_statement
 
 			expect(ast_type_can_merge(&$$->type, &$expression_block.value->properties->type))
 				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
-							ast_type_to_string(&$expression_block.value->properties->type), ast_type_to_string(&$$->type));
+							ast_type_display_name(&$expression_block.value->properties->type), ast_type_display_name(&$$->type));
 
 			se_context_level* function = context_find(context, SCTX_SCOPE);
 			if (function != NULL) {
@@ -792,9 +845,13 @@ constructor_expression_basic
 			*$$->type = $type;
 			$$->argument_list = $invocation_expression;
 
-			if (ast_type_is_constant_array(&$type)) {
+			if (ast_type_is_array(&$type)) {
 				$$->is_array = true;
-				$$->u_array_size = ast_type_constant_array_size(&$type);
+				if (ast_type_is_constant_array(&$type)) {
+					$$->u_array_size = ast_type_constant_array_size(&$type);
+				} else {
+					$$->u_array_size = NULL;
+				}
 				arl_pop(ast_type_level, (*$$->type).level_list);
 			} else {
 				$$->is_array = false;
@@ -950,6 +1007,14 @@ cast_expression
 		{ inherit_self_with(cast, cast, $$, $value, $type); }
 	;
 
+op_shift_left
+	: '<' '<'
+	;
+
+op_shift_right
+	: '>' '>'
+	;
+
 binary_expression
 	: cast_expression[value] /* todo naming "value", "parent" */
 		{ inherit_expression(binary, cast, $$, $value); }
@@ -964,8 +1029,8 @@ binary_expression
 	| binary_expression[a] '-' binary_expression[b] { iapi_inherit_binary(subtract, SUBTRACT, $$, $a, $b); }
 
 		/* bit shift */
-	| binary_expression[a] OP_SHIFT_LEFT  binary_expression[b] { iapi_inherit_binary(shift_left,  SHIFT_LEFT,  $$, $a, $b); }
-	| binary_expression[a] OP_SHIFT_RIGHT binary_expression[b] { iapi_inherit_binary(shift_right, SHIFT_RIGHT, $$, $a, $b); }
+	| binary_expression[a] op_shift_left %prec _OP_SHIFT_LEFT  binary_expression[b] { iapi_inherit_binary(shift_left,  SHIFT_LEFT,  $$, $a, $b); }
+	| binary_expression[a] op_shift_right %prec _OP_SHIFT_RIGHT binary_expression[b] { iapi_inherit_binary(shift_right, SHIFT_RIGHT, $$, $a, $b); }
 
 		/* comparison */
 	| binary_expression[a] '<' 			 	binary_expression[b] { iapi_inherit_binary(less_than,     LESS_THAN,     $$, $a, $b); }
@@ -1085,14 +1150,33 @@ type_terminal
     : PRIMITIVE_NAME 
 		{ ast_type_init(&$$, AST_TYPE_PRIMITIVE, $PRIMITIVE_NAME); }
 
-	| STRUCTURE_NAME
-		{ ast_type_init(&$$, AST_TYPE_STRUCTURE, $STRUCTURE_NAME); }
+	| GENERIC_NAME
+		{ ast_type_init(&$$, AST_TYPE_GENERIC, $GENERIC_NAME); }
+
+	| STRUCTURE_NAME generic_impls
+		{ 
+			ast_type_init(&$$, AST_TYPE_STRUCTURE, $STRUCTURE_NAME); 
+			$$._generic_impl_index = dc_structure_generic_add_impl($STRUCTURE_NAME, $generic_impls);
+		}
 
 	| ENUM_NAME
 		{ ast_type_init(&$$, AST_TYPE_ENUM, $ENUM_NAME); }
 
 	| ALIAS_NAME
 		{ ast_type_clone_to(&$$, $ALIAS_NAME->target); }
+	;
+
+generic_impls
+	: '<' generic_impl_list '>'
+		{ li_init_from(ast_type, $$, $generic_impl_list); }
+	
+	| %empty
+		{ li_init_empty(ast_type, $$); }
+	;
+
+generic_impl_list
+	: type { arraylist_init_with(ast_type)(&$$, $type); }
+	| generic_impl_list[value] type { arl_assign_add(ast_type, $$, $type, $value); }
 	;
 
 

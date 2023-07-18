@@ -29,6 +29,14 @@
 #include "language/context.h"            /* parser context */
 #include "ast/type/type.h"               /* lexical type */
 
+    /* definitions */
+#define CST_GENERIC_PREFIX "__cst_generic_of_"
+#define CST_GENERIC_START_PREFIX "__cst_startgeneric_"
+#define CST_GENERIC_END_PREFIX "__cst_endgeneric_"
+#define CST_ANON_STRUCT_PREFIX "__cst_anonymous_structure_"
+#define CST_ANON_ENUM_PREFIX "__cst_anonymous_enum_"
+#define CST_ANON_FUNC_PREFIX "__cst_anonymous_function_"
+
     /* typedefs */
 /**
  * Structure is a named list of members,
@@ -37,6 +45,8 @@
 struct dc_structure {
     bool is_full; /* marks partial declarations */
     char* name;
+    list(dc_generic_ptr) generics;
+    arraylist(list(ast_type)) _generic_impls;
     list(dc_structure_member) member_list;
 };
 
@@ -170,7 +180,7 @@ arraylist_declare_functions(declaration);
  */
 enum local_declaration_kind {
     DC_L_FUNCTION_PARAMETER, DC_L_VARIABLE,
-    DC_L_GENERIC_NAME
+    DC_L_GENERIC
 };
 
 struct local_declaration {
@@ -186,7 +196,116 @@ struct local_declaration {
     };
 };
 arraylist_declare_functions(local_declaration);
-/* todo - needs to be reworked, as currently there are declaration conflicts between scopes
-    e.g. for if expressions inside functions */
+
+
+    /* functions */
+/**
+ * Adds a generic implementation to a structure
+ * 
+ * @param this The structure
+ * @param impl The list of types for the generic implementation
+ * 
+ * @return The index of the implementation
+ */
+index_t dc_structure_generic_add_impl(dc_structure* this, list(ast_type) impl);
+
+/**
+ * Applies a generic implementation to the structure's generics
+ * for type checking or code generation purposes
+ * 
+ * @param this The structure
+ * @param impl The list of types for the generic implementation
+ */
+void dc_structure_generic_apply_impl(dc_structure* this, list(ast_type) impl);
+
+/**
+ * Returns the implementation of a generic type
+ * 
+ * @param this Pointer to the generic type
+ * 
+ * @return Pointer to an implementation of the generic type
+ */
+ast_type* dc_generic_get_impl(ast_type* this);
+
+/**
+ * Pretty-prints a structure's contents to a string
+ * 
+ * @param[in] this The structure
+ * 
+ * @return The string, allocated by malloc
+ */
+char* dc_structure_contents_to_string(dc_structure* this);
+
+/**
+ * Pretty-prints a structure to show its display name,
+ * or contents if it's anonymous
+ * 
+ * @param this The structure
+ * @param index The generic impl index to use
+ * 
+ * @return Display name, allocated by a malloc,
+ *          or the structure's actual name
+ */
+char* dc_structure_display_name(dc_structure* this, index_t impl_index);
+
+/**
+ * Pretty-prints an enum to show its display name,
+ * or contents if it's anonymous
+ * 
+ * @param this The enum
+ * @param index The generic impl index to use
+ * 
+ * @return Display name, allocated by a malloc,
+ *          or the enum's actual name
+ */
+char* dc_enum_display_name(dc_enum* this, index_t impl_index);
+
+/**
+ * Pretty-prints a function to show its display name,
+ * or contents if it's anonymous
+ * 
+ * @param this The function
+ * @param index The generic impl index to use
+ * 
+ * @return Display name, allocated by a malloc,
+ *          or the function's actual name
+ */
+char* dc_function_display_name(dc_function* this, index_t impl_index);
+
+/**
+ * Mangles a structure's name in case it has generics or is anonymous,
+ * otherwise returns its original name
+ * 
+ * @param this The structure
+ * @param index The generic impl index to use
+ * 
+ * @return Mangled name, allocated by a malloc,
+ *          or the structure's actual name
+ */
+char* dc_structure_mangled_name(dc_structure* this, index_t impl_index);
+
+/**
+ * Mangles an enum's name in case it has generics or is anonymous,
+ * otherwise returns its original name
+ * 
+ * @param this The enum
+ * @param index The generic impl index to use
+ * 
+ * @return Mangled name, allocated by a malloc,
+ *          or the enum's actual name
+ */
+char* dc_enum_mangled_name(dc_enum* this, index_t impl_index);
+
+/**
+ * Mangles a function's name in case it has generics or is anonymous,
+ * otherwise returns its original name
+ * 
+ * @param this The function
+ * @param index The generic impl index to use
+ * 
+ * @return Mangled name, allocated by a malloc,
+ *          or the function's actual name
+ */
+char* dc_function_mangled_name(dc_function* this, index_t impl_index);
 
 #endif /* CARBONSTEEL_SYNTAX_DECLARATION_H */

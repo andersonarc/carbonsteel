@@ -167,7 +167,7 @@ void ast_add_identifier(ast_root* ast, int token, int ctoken, declaration* dc) {
             ast_type par = cst_declaration_to_type(*dc);
             char *exstr, *parstr;
             logd("ImportGuard: attempt to redefine a non-native type from native code, actual type: original <%s> new <%s>",
-                exstr = ast_type_to_string(&ex), parstr = ast_type_to_string(&par));
+                exstr = ast_type_display_name(&ex), parstr = ast_type_display_name(&par));
             free(exstr);
             free(parstr);
 

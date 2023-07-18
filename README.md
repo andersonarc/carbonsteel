@@ -19,10 +19,13 @@ Programming language transpiler designed to fix existing issues and introduce ne
 - Auto-generated inline constructors for every type
 - Auto-generated headers for each source file
 - More strict type checking
+- Interoperability with C using the `import native` statement
+- Generic types
 
 ### Planned features
 
-- Interoperability with C using the `import native` statement
+- Generic methods
+- Safer unions
 - Expression statements `x = if (a) b else c` instead of conditional expressions `x = a ? b : c` 
 - Auto-generated `free()` statements for allocated memory
 - Support for C type qualifiers such as `static`, `extern`, `inline`

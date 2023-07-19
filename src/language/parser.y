@@ -55,6 +55,7 @@
 	#include "misc/union.h" 	  /* union initialization */
 	#include "ast/type/check.h"	  /* type checking */
 	#include "ast/type/resolve.h" /* default type values */
+	#include "ast/type/primitive.h"
 
 	int myylex(MYYSTYPE* yylval_param, MYYLTYPE* yylloc_param, void* yyscanner, se_context* context);
 %}
@@ -87,6 +88,7 @@
 %token <char>   CHAR_CONSTANT   	"char constant"
 %token <double> DOUBLE_CONSTANT 	"double constant"
 %token <char*>  STRING_LITERAL 		"string literal"
+%token <char*>  CODE_LITERAL 		"code literal"
 %token <bool>   TRUE				"true"
 %token <bool>   FALSE				"false"
 
@@ -190,6 +192,7 @@
 
 	/* variable */
 %nterm 	<dc_st_variable*>  global_variable_declaration_statement
+%nterm 	<dc_st_variable*>  local_variable_declaration_statement
 %nterm 	<dc_st_variable*>  variable_declaration_statement
 
 	/* alias */
@@ -561,6 +564,7 @@ structure_declaration
 		{
 			$$ = $structure_prefix;
 			$$->is_full = true;
+			$$->is_c_struct = false;
 			$$->member_list = $structure_body;
 
 			context_exit(context);
@@ -569,6 +573,7 @@ structure_declaration
 		{
 			$$ = $structure_prefix;
 			$$->is_full = false;
+			$$->is_c_struct = false;
 			li_init_empty(dc_structure_member, $$->member_list);
 
 			context_exit(context);
@@ -633,6 +638,7 @@ enum_declaration
 		{
 			$$ = context_get(context, SCTX_ENUM)->u_enum_context.value;
 			$$->is_full = true;
+			$$->is_c_enum = false;
 			$$->name = $enum_name;
 			$$->member_list = $enum_body;
 
@@ -644,6 +650,7 @@ enum_declaration
 	  	{
 			$$ = allocate(dc_enum);
 			$$->is_full = false;
+			$$->is_c_enum = false;
 			$$->name = $enum_name;
 			li_init_empty(dc_enum_member, $$->member_list);
 
@@ -712,18 +719,20 @@ enum_member
 	;
 
 global_variable_declaration_statement
-	: type_and_name '=' expression_block ';'
+	: type_and_name '=' expression ';'
 		{
 			$$ = allocate(dc_st_variable);
 			$$->is_full = $type_and_name.is_full;
 			$$->type = $type_and_name.type;
 			$$->name = $type_and_name.name;
-			$$->value = $expression_block;
+			arraylist_init_empty(ex_constructor_ptr)(&$$->value.constructors);
+			$$->value.value = $expression;
 
-			expect(ast_type_can_merge(&$$->type, &$expression_block.value->properties->type))
+			expect(ast_type_can_merge(&$$->type, &$expression->properties->type))
 				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
-							ast_type_display_name(&$expression_block.value->properties->type), ast_type_display_name(&$$->type));
+							ast_type_display_name(&$expression->properties->type), ast_type_display_name(&$$->type));
 		}
+		
 	| type_and_name SKIPPED_STATEMENT
 		{
 			$$ = allocate(dc_st_variable);
@@ -745,6 +754,26 @@ variable_declaration_statement
 			expect(ast_type_can_merge(&$$->type, &$expression_block.value->properties->type))
 				otherwise("variable declaration with illegal assignment from type \"%s\" to \"%s\"",
 							ast_type_display_name(&$expression_block.value->properties->type), ast_type_display_name(&$$->type));
+		}
+
+	| type IDENTIFIER '=' PRIMITIVE_NAME ';'
+		{
+			expect(ast_type_primitive_is_void($PRIMITIVE_NAME))
+				otherwise("expected a void type for an uninitialized expression");
+
+			$$ = allocate(dc_st_variable);
+			$$->is_full = true;
+			$$->type = $type;
+			$$->name = $IDENTIFIER;
+			arraylist_init_empty(ex_constructor_ptr)(&$$->value.constructors);
+			$$->value.value = NULL;
+		}
+	;
+
+local_variable_declaration_statement
+	: variable_declaration_statement
+		{
+			$$ = $variable_declaration_statement;
 
 			se_context_level* function = context_find(context, SCTX_SCOPE);
 			if (function != NULL) {
@@ -915,6 +944,9 @@ basic_expression
 	| STRING_LITERAL	
 		{ inherit_extern(basic, string, $$, $STRING_LITERAL); }
 
+	| CODE_LITERAL	
+		{ inherit_extern(basic, code, $$, $CODE_LITERAL); }
+
 	| constructor_expression
 		{ inherit_extern(basic, ex_constructor, $$, $constructor_expression);}
 
@@ -1003,7 +1035,7 @@ cast_expression
 	: unary_expression
 		{ inherit_expression(cast, unary, $$, $unary_expression); }
 
-	| cast_expression[value] AS '(' type ')'
+	| '(' type ')' cast_expression[value]
 		{ inherit_self_with(cast, cast, $$, $value, $type); }
 	;
 
@@ -1025,11 +1057,11 @@ binary_expression
 	| binary_expression[a] '%' binary_expression[b] { iapi_inherit_binary(modulo,   MODULO,   $$, $a, $b); }
 
 		/* addition */
-	| binary_expression[a] '+' binary_expression[b] { iapi_inherit_binary(add, 	   ADD,      $$, $a, $b); }
+	| binary_expression[a] '+' binary_expression[b] { iapi_inherit_binary(add, 	    ADD,      $$, $a, $b); }
 	| binary_expression[a] '-' binary_expression[b] { iapi_inherit_binary(subtract, SUBTRACT, $$, $a, $b); }
 
 		/* bit shift */
-	| binary_expression[a] op_shift_left %prec _OP_SHIFT_LEFT  binary_expression[b] { iapi_inherit_binary(shift_left,  SHIFT_LEFT,  $$, $a, $b); }
+	| binary_expression[a] op_shift_left  %prec _OP_SHIFT_LEFT  binary_expression[b] { iapi_inherit_binary(shift_left,  SHIFT_LEFT,  $$, $a, $b); }
 	| binary_expression[a] op_shift_right %prec _OP_SHIFT_RIGHT binary_expression[b] { iapi_inherit_binary(shift_right, SHIFT_RIGHT, $$, $a, $b); }
 
 		/* comparison */
@@ -1217,8 +1249,8 @@ compound_statement_item_list
 	;
 
 compound_statement_item
-	: variable_declaration_statement { u_init($$, ST_C_ST_VARIABLE).u_variable  = $variable_declaration_statement; }
-	| statement 					 { u_init($$, ST_C_STATEMENT)  .u_statement = $statement; 					   }
+	: local_variable_declaration_statement	{ u_init($$, ST_C_ST_VARIABLE).u_variable  = $local_variable_declaration_statement; }
+	| statement 					 		{ u_init($$, ST_C_STATEMENT)  .u_statement = $statement; 					   		}
 	;
 
 expression_statement

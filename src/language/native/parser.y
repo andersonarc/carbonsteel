@@ -537,6 +537,7 @@ struct_or_union_specifier
 		{
 			$$ = allocate(dc_structure);
 			$$->is_full = true;
+			$$->is_c_struct = true;
 			$$->name = $structure_name;
 			$$->member_list = $structure_body;
 			li_init_empty(dc_generic_ptr, $$->generics);
@@ -547,6 +548,7 @@ struct_or_union_specifier
 		{
 			$$ = allocate(dc_structure);
 			$$->is_full = true;
+			$$->is_c_struct = true;
 			$$->name = NULL;
 			$$->member_list = $structure_body;
 			li_init_empty(dc_generic_ptr, $$->generics);
@@ -560,6 +562,7 @@ struct_or_union_specifier
 			if (dc == NULL) {
 				dc_structure* st = allocate(dc_structure);
 				st->is_full = false;
+				st->is_c_struct = true;
 				st->name = actual;
 				li_init_empty(dc_generic_ptr, st->generics);
 				li_init_empty(dc_structure_member, st->member_list);
@@ -671,6 +674,7 @@ enum_specifier
 		{
 			$$ = context_get(context, SCTX_ENUM)->u_enum_context.value;
 			$$->is_full = true;
+			$$->is_c_enum = true;
 			$$->name = $enum_name;
 			$$->member_list = $enum_body;
 
@@ -680,6 +684,7 @@ enum_specifier
 		{
 			$$ = context_get(context, SCTX_ENUM)->u_enum_context.value;
 			$$->is_full = true;
+			$$->is_c_enum = true;
 			$$->name = NULL;
 			$$->member_list = $enum_body;
 
@@ -692,6 +697,7 @@ enum_specifier
 			if (dc == NULL) {
 				dc_enum* st = allocate(dc_enum);
 				st->is_full = false;
+				st->is_c_enum = true;
 				st->name = actual;
 				li_init_empty(dc_enum_member, st->member_list);
 

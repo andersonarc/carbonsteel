@@ -59,17 +59,13 @@ iapi_init_from_parent(binary, cast) {
 
     /* {DATA} BINARY < BINARY + OPERATOR */
 iapi_binary_data() {
-    if (!this->has_operation) {
-        this->a = allocate(ex_binary_data);
-        *this->a = *parent;
-
-        this->has_operation = true;
-    }
+    this->a = allocate(ex_binary_data);
+    *this->a = *parent;
 
     this->b = allocate(ex_binary_data);
     *this->b = *other;
 
-    /* add the operator */
+    this->has_operation = true;
     this->operator = operator;
 }
 

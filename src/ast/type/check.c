@@ -246,8 +246,23 @@ bool ast_type_is_equal(ast_type* a, ast_type* b) {
         return result;
     }
 
-    if (a->kind != b->kind) return false;
+    /* handle "any" types */
+    if ((a->kind == AST_TYPE_PRIMITIVE && ast_type_primitive_get_index(a->u_primitive) == PRIMITIVE_INDEX_ANY)
+        || (b->kind == AST_TYPE_PRIMITIVE && ast_type_primitive_get_index(b->u_primitive) == PRIMITIVE_INDEX_ANY)) {
+            return true;
+        }
+
     if (a->level_list.size != b->level_list.size) return false;
+
+    /* handle void pointers */
+    if (ast_type_is_pointer(a) && ast_type_is_pointer(b)) {
+        if ((a->kind == AST_TYPE_PRIMITIVE && ast_type_primitive_get_index(a->u_primitive) == PRIMITIVE_INDEX_VOID)
+            || (b->kind == AST_TYPE_PRIMITIVE && ast_type_primitive_get_index(b->u_primitive) == PRIMITIVE_INDEX_VOID)) {
+                return true;
+            }
+    }
+
+    if (a->kind != b->kind) return false;
     iterate_array(i, a->level_list.size) {
         if (a->level_list.data[i].kind != b->level_list.data[i].kind) return false;
     }

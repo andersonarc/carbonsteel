@@ -1,0 +1,14 @@
+type field_t {
+    long size;
+};
+
+void main() {
+    int x_index = 0;
+    int y_index = 3;
+    int x_start_index = 0;
+    int y_start_index = 3;
+    field_t* field = new field_t(77);
+    if (x_start_index == 0 && y_start_index == field->size - 1) {
+        while (x_index != field->size || y_index != 0) { }
+    }
+}

@@ -20,7 +20,7 @@ void bwrite(buffer_t* buffer) {
     int index = 0;
     double coefficient = 3.14;
     while (index < buffer->size) {
-        buffer->data[index] = (index + coefficient) as (byte);
+        buffer->data[index] = (byte) (index + coefficient);
 
         int cache = 3;
 

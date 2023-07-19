@@ -52,7 +52,7 @@ void ex_constructor_type_check(ex_constructor* this);
  * Basic expression could be
  * a variable or a function reference,
  * a numerical or a boolean expression,
- * a string literal, a constructor expression,
+ * a string literal, a code literal, a constructor expression,
  * an enum member expression,
  * a function parameter reference or another
  * expression enclosed in brackets
@@ -60,7 +60,7 @@ void ex_constructor_type_check(ex_constructor* this);
 enum ex_basic_kind {
     EX_B_VARIABLE, EX_B_FUNCTION,
     EX_B_NUMBER, EX_B_BOOLEAN, EX_B_CHARACTER,
-    EX_B_STRING, EX_B_EX_CONSTRUCTOR, 
+    EX_B_STRING, EX_B_CODE, EX_B_EX_CONSTRUCTOR, 
     EX_B_ENUM_MEMBER,
     EX_B_FUNCTION_PARAMETER, EX_B_EXPRESSION
 };
@@ -75,6 +75,7 @@ struct ex_basic_data {
         ex_character u_character;
         ex_enum_member* u_enum_member;
         char* u_string;
+        char* u_code;
         ex_constructor* u_ex_constructor;
         dc_function_parameter* u_function_parameter;
         expression_data* u_expression;
@@ -89,6 +90,7 @@ extern_inheritance(basic, boolean, bool);
 extern_inheritance(basic, character, ex_character);
 extern_inheritance(basic, enum_member, ex_enum_member*);
 extern_inheritance(basic, string, char*);
+extern_inheritance(basic, code, char*);
 extern_inheritance(basic, ex_constructor, ex_constructor*);
 extern_inheritance(basic, function_parameter, dc_function_parameter*);
 expression_inheritance(basic, expression);

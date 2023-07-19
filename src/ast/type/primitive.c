@@ -63,6 +63,8 @@ void primitive_list_init() {
 
     ast_declare_primitive(FLOAT,  "float",  "float",    4, 16777216UL /* 2 ^ 24 (mantissa bits) */, true);
     ast_declare_primitive(DOUBLE, "double", "double",   8, 9007199254740992UL /* 2 ^ 53 (mantissa bits) */, true);
+
+    ast_declare_primitive(ANY, "<__cst_any>", "<__cst_any>", 0, 0, false);
 }
 
 /**

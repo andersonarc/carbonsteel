@@ -21,7 +21,11 @@ iapi_init_union_from_extern(B, basic, dc_st_variable*, VARIABLE, variable) {
         ast_type_clone_to(&this->type, value->type);
     }
     iset_constant(origin) {
-        ex_constant_reference(&this->constant, &value->value.value->properties->constant);
+        if (value->value.value != NULL) {
+            ex_constant_reference(&this->constant, &value->value.value->properties->constant);
+        } else {
+            ex_constant_dynamic(&this->constant);
+        }
     }
 }
 
@@ -75,6 +79,16 @@ iapi_init_union_from_extern(B, basic, char*, STRING, string)  {
     }
     iset_constant(array) {
         ex_constant_from_array(&this->constant, EX_C_CHAR, value, strlen(value));
+    }
+}
+
+    /* {PROPERTIES} BASIC << CODE */
+iapi_init_union_from_extern(B, basic, char*, CODE, code)  {
+    iset_type(resolve) {
+        ast_type_of_any(&this->type);
+    }
+    iset_constant(array) {
+        ex_constant_dynamic(&this->constant);
     }
 }
 

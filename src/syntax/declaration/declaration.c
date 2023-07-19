@@ -7,6 +7,7 @@
  *  Functions for working with declarations
  */
 #include "syntax/declaration/declaration.h"
+#include "language/native/declaration.h"
 #include "ast/type/check.h"
 #include "misc/string.h"
 
@@ -315,6 +316,12 @@ char* dc_structure_mangled_name(dc_structure* this, index_t impl_index) {
         name[strlen(CST_ANON_STRUCT_PREFIX) + 20] = 0;
     }
 
+    /* handle c names */
+    if (this->is_c_struct) {
+        name[CST_NATIVE_STRUCT_PREFIX_STRLEN - 1] = ' ';
+        return name;
+    }
+
     /* handle non-generic names */
     if (this->generics.size == 0) {
         return name;
@@ -388,6 +395,12 @@ char* dc_enum_mangled_name(dc_enum* this, index_t impl_index) {
         strcpy(name, CST_ANON_ENUM_PREFIX);
         sprintf(name + sizeof(CST_ANON_ENUM_PREFIX) - 1, "%zu", (size_t) this);
         name[sizeof(CST_ANON_ENUM_PREFIX) + 19] = 0;
+    }
+
+    /* handle c names */
+    if (this->is_c_enum) {
+        name[CST_NATIVE_ENUM_PREFIX_STRLEN - 1] = ' ';
+        return name;
     }
 
     return name;

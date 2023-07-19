@@ -8,18 +8,18 @@ import native sys.socket;
 import native unistd;
 
 void main() {
-    int sockfd = socket(2, enum___socket_type.SOCK_STREAM as (int), 0);
+    int sockfd = socket(`AF_INET`, (int) enum___socket_type.SOCK_STREAM, 0);
     if (sockfd < 0) {
         return -1;
     }
     
-    struct_sockaddr_in servaddr = 0 as (struct_sockaddr_in);
-    bzero(&servaddr as (void*), 6);
-    servaddr.sin_family = 2 as (ushort);
+    struct_sockaddr_in servaddr = void;
+    bzero(&servaddr, `sizeof(servaddr)`);
+    servaddr.sin_family = `AF_INET`;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     servaddr.sin_port = htons(777);
  
-    if (connect(sockfd, &servaddr as (struct_sockaddr*), 6) != 0) {
+    if (connect(sockfd, (struct_sockaddr*) &servaddr, `sizeof(servaddr)`) != 0) {
         return -2;
     }
 

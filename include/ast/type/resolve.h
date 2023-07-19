@@ -19,9 +19,11 @@
 /**
  * Primitive expression type resolution functions
  * 
- * ast_type_of_string    - intializes byte[]
- * ast_type_of_boolean   - intializes bool
- * ast_type_of_character - intializes byte
+ * ast_type_of_string    - initializes byte[]
+ * ast_type_of_void      - initializes void
+ * ast_type_of_any       - initializes any (special type)
+ * ast_type_of_boolean   - initializes bool
+ * ast_type_of_character - initializes byte
  * 
  * ast_type_of_ex_number - intializes the default numerical constant type
  *                          (float - float constant)
@@ -32,6 +34,8 @@
  *                               (type + *  if is_new)
  */
 void ast_type_of_string(ast_type* this);
+void ast_type_of_void(ast_type* this);
+void ast_type_of_any(ast_type* this);
 void ast_type_of_boolean(ast_type* this);
 void ast_type_of_character(ast_type* this);
 void ast_type_of_ex_constructor(ast_type* this, ex_constructor* ex);

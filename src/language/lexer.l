@@ -300,6 +300,14 @@ WS     [ \t\v\f]
                                         return TOKEN_STRING_LITERAL;
                                     }
 
+    /* code literal */
+\`([^`])*\`                         {
+                                        yylval_param->TOKEN_CODE_LITERAL = copy_string(yytext + sizeof(char));
+                                        /* trim the quotation marks */
+                                        yylval_param->TOKEN_CODE_LITERAL[strlen(yylval_param->TOKEN_CODE_LITERAL) - 1] = 0;
+                                        return TOKEN_CODE_LITERAL;
+                                    }
+
 
     /* assignment operators */
 "*="				{ yylval_param->TOKEN_OP_ASSIGN = OP_A_MULTIPLY;      return TOKEN_OP_ASSIGN; }

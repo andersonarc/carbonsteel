@@ -45,6 +45,7 @@
 struct dc_structure {
     bool is_full; /* marks partial declarations */
     char* name;
+    bool is_c_struct;
     list(dc_generic_ptr) generics;
     arraylist(list(ast_type)) _generic_impls;
     list(dc_structure_member) member_list;
@@ -63,6 +64,7 @@ arraylist_declare_functions(dc_structure_member);
  */
 struct dc_enum {
     bool is_full; /* marks partial declarations */
+    bool is_c_enum;
     char* name;
     list(dc_enum_member) member_list;
 };

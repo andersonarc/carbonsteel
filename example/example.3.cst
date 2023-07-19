@@ -56,7 +56,7 @@ bool check_win(cz_field* field, cz_cell expected) {
             }
             
             if (x_start_index == 0) {
-                while (x_index != field->size) {
+                while (x_index < field->size) {
                     cz_cell x_neighbor = field->data[y_index][x_index++];
                     if (x_neighbor == expected) {
                         count++;
@@ -68,7 +68,7 @@ bool check_win(cz_field* field, cz_cell expected) {
             }
 
             if (x_start_index == 0 && y_start_index == 0) {
-                while (x_index != field->size || y_index != field->size) {
+                while (x_index < field->size && y_index < field->size) {
                     cz_cell xy_neighbor = field->data[y_index++][x_index++];
                     if (xy_neighbor == expected) {
                         count++;
@@ -80,7 +80,7 @@ bool check_win(cz_field* field, cz_cell expected) {
             }
 
             if (x_start_index == 0 && y_start_index == field->size - 1) {
-                while (x_index != field->size || y_index != 0) {
+                while (x_index < field->size && y_index > 0) {
                     cz_cell yx_neighbor = field->data[y_index--][x_index++];
                     if (yx_neighbor == expected) {
                         count++;

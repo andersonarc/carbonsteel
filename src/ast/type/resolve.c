@@ -36,6 +36,13 @@ void ast_type_of_string(ast_type* this) {
     ast_type_array_wrap(this);
 }
 
+void ast_type_of_void(ast_type* this) {
+    ast_type_init(this, AST_TYPE_PRIMITIVE, &primitive_list.data[PRIMITIVE_INDEX_VOID]);
+}
+
+void ast_type_of_any(ast_type* this) {
+    ast_type_init(this, AST_TYPE_PRIMITIVE, &primitive_list.data[PRIMITIVE_INDEX_ANY]);
+}
 
 void ast_type_of_character(ast_type* this) {
     ast_type_init(this, AST_TYPE_PRIMITIVE, &primitive_list.data[PRIMITIVE_INDEX_CHAR]);

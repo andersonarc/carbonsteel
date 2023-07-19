@@ -256,10 +256,14 @@ cgd_ex(number_data) {
     /** ENUM MEMBER **/
 
 cgd_dc(enum_member) {
-    out(string)("_cst_enum__");
-    out(string)(dc->parent->name);
-    out(string)("__member__");
-    out(string)(dc->name);
+    if (dc->parent->is_c_enum) {
+        out(string)(dc->name);
+    } else {
+        out(string)("_cst_enum__");
+        out(string)(dc->parent->name);
+        out(string)("__member__");
+        out(string)(dc->name);
+    }
 }
 
 
@@ -391,6 +395,10 @@ cgd_ex(basic_data) {
 
         case EX_B_STRING:
             out(string)(ex->u_string);
+            break;
+
+        case EX_B_CODE:
+            out(string)(ex->u_code);
             break;
 
         case EX_B_FUNCTION_PARAMETER:
@@ -635,8 +643,13 @@ cgd_dc_st_variable() {
 
     out(tabs)();
     cg(type)(&st->type);
-    out(format)(" %s = ", st->name);
-    cg(ex_block)(&st->value);
+    if (st->value.value != NULL) {
+        out(format)(" %s = ", st->name);
+        cg(ex_block)(&st->value);
+    } else {
+        out(char)(' ');
+        out(string)(st->name);
+    }
 
     out(string)(";\n");
 }
@@ -735,9 +748,10 @@ cgd(function_declaration, dc_function* dc) {
 
     out(char)(' ');
     out(string)(dc->name);
+    out(char)(' ');
     cg(function_parameters)(&dc->parameters);
 
-    out(string)(";\n\n");
+    out(string)(" ;\n\n");
 }
 
     /** FUNCTION **/
@@ -752,7 +766,9 @@ cgd_dc(function) {
 
     out(char)(' ');
     out(string)(dc->name);
+    out(char)(' ');
     cg(function_parameters)(&dc->parameters);
+    out(char)(' ');
 
     cg(st_compound)(&dc->body);
     out(char)('\n');

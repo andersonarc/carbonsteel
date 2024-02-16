@@ -12,5 +12,7 @@ subprojects/nanomsg.wrap
 subprojects/nanomsg
 subprojects/nanopb.wrap
 subprojects/nanopb
+subprojects/libgit2.wrap
+subprojects/libgit2
 notes
 a.out
